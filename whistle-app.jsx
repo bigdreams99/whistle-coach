@@ -729,6 +729,8 @@ function DashboardPage({ sport, setPage }) {
   const isMobile = useIsMobile();
   const cfg = sportConfig[sport];
   const drills = drillsBySport[sport] || [];
+  const [teamsData] = useLocalStorage("teams", defaultTeamsData);
+  const [practicePlans] = useLocalStorage("practicePlans", defaultPracticePlans);
   const statCards = [
     { label: "Generate Plan", value: "New", icon: Sparkles, gradient: `linear-gradient(135deg, ${c.green600}, ${c.emerald600})`, onClick: () => setPage("generate") },
     { label: "Drill Library", value: String(drills.length), icon: Zap, gradient: `linear-gradient(135deg, ${c.blue500}, #6366f1)`, onClick: () => setPage("drills") },
