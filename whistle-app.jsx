@@ -35,7 +35,7 @@ function useIsMobile() {
 const c = {
   green50: "#f0fdf4", green100: "#dcfce7", green200: "#bbf7d0", green400: "#4ade80",
   green500: "#22c55e", green600: "#16a34a", green700: "#15803d", green800: "#166534", green900: "#14532d",
-  emerald600: "#059669",
+  emerald600: "#047857",
   slate50: "#f8fafc", slate100: "#f1f5f9", slate200: "#e2e8f0", slate300: "#cbd5e1",
   slate400: "#94a3b8", slate500: "#64748b", slate600: "#475569", slate700: "#334155",
   slate800: "#1e293b", slate900: "#0f172a",
@@ -91,7 +91,7 @@ function useLocalStorage(key, initialValue) {
 const sportConfig = {
   Soccer: {
     emoji: "\u26bd", tip: "Effective practices balance repetition with game-like situations. Keep passing drills dynamic with movement off the ball.",
-    fieldColor: "#22c55e", heroGradient: `linear-gradient(135deg, #166534 0%, #15803d 50%, #059669 100%)`,
+    fieldColor: "#22c55e", heroGradient: `linear-gradient(135deg, #166534 0%, #15803d 50%, #047857 100%)`,
     positions: ["GK","CB","LB","RB","CDM","CM","CAM","LW","RW","ST"],
   },
   Basketball: {
@@ -601,7 +601,7 @@ function HeroBtn({ label, primary, icon: Icon, onClick }) {
 
 function HoverCard({ children, style, onClick }) {
   return (
-    <div onClick={onClick} style={{ ...cardStyle, ...style }}
+    <div onClick={onClick} role={onClick ? "button" : undefined} tabIndex={onClick ? 0 : undefined} onKeyDown={onClick ? e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(e); } } : undefined} style={{ ...cardStyle, ...style }}
       onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(0,0,0,0.1)"; }}
       onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
     >{children}</div>
@@ -671,14 +671,15 @@ function Sidebar({ page, setPage, sport, setSport, sportOpen, setSportOpen, isMo
       <div style={{ padding: "0 16px", marginBottom: 24, position: "relative" }}>
         <label style={{ fontSize: 11, fontWeight: 600, color: c.slate500, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, display: "block", paddingLeft: 4 }}>Sport</label>
         <button onClick={e => { e.stopPropagation(); setSportOpen(!sportOpen); }}
+          aria-expanded={sportOpen} aria-haspopup="listbox" aria-label={`Select sport, current: ${sport}`}
           style={{ width: "100%", padding: "8px 12px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.slate50, display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, fontWeight: 500, color: c.slate700 }}>
           <span style={{ fontSize: 18 }}>{sportConfig[sport].emoji}</span>{sport}
           <ChevronDown size={14} style={{ marginLeft: "auto", color: c.slate400, transition: "transform 0.2s", transform: sportOpen ? "rotate(180deg)" : "none" }} />
         </button>
         {sportOpen && (
-          <div style={{ position: "absolute", top: "100%", left: 16, right: 16, marginTop: 4, background: c.white, borderRadius: 12, border: `1px solid ${c.slate200}`, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 100, overflow: "hidden" }}>
+          <div role="listbox" aria-label="Sport selection" style={{ position: "absolute", top: "100%", left: 16, right: 16, marginTop: 4, background: c.white, borderRadius: 12, border: `1px solid ${c.slate200}`, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 100, overflow: "hidden" }}>
             {Object.keys(sportConfig).map(s => (
-              <button key={s} onClick={e => { e.stopPropagation(); setSport(s); setSportOpen(false); }}
+              <button key={s} role="option" aria-selected={s === sport} onClick={e => { e.stopPropagation(); setSport(s); setSportOpen(false); }}
                 style={{ width: "100%", padding: "10px 14px", border: "none", background: s === sport ? c.green50 : "transparent", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, fontWeight: s === sport ? 600 : 400, color: s === sport ? c.green700 : c.slate600 }}>
                 <span style={{ fontSize: 16 }}>{sportConfig[s].emoji}</span>{s}
                 {s === sport && <CheckCircle2 size={14} style={{ marginLeft: "auto" }} />}
@@ -688,13 +689,14 @@ function Sidebar({ page, setPage, sport, setSport, sportOpen, setSportOpen, isMo
         )}
       </div>
 
-      <nav style={{ flex: 1, padding: "0 10px" }}>
+      <nav aria-label="Main navigation" style={{ flex: 1, padding: "0 10px" }}>
         {navItems.map(item => {
           const active = page === item.key || (page === "drill-detail" && item.key === "drills") || (page === "team-detail" && item.key === "teams") || (page === "plan-result" && item.key === "generate");
           const Icon = item.icon;
           const isGenerate = item.key === "generate";
           return (
             <button key={item.key} onClick={() => setPage(item.key)}
+              aria-current={active ? "page" : undefined}
               style={{
                 width: "100%", padding: "10px 14px", borderRadius: 10,
                 border: isGenerate && !active ? `1.5px solid ${c.green500}` : "none",
@@ -749,7 +751,7 @@ function DashboardPage({ sport, setPage }) {
         {statCards.map((card, i) => {
           const Icon = card.icon;
           return (
-            <div key={i} onClick={card.onClick} style={{ ...cardStyle, background: card.gradient, color: c.white, padding: "22px 20px", border: "none" }}
+            <div key={i} onClick={card.onClick} role="button" tabIndex={0} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); card.onClick?.(); } }} style={{ ...cardStyle, background: card.gradient, color: c.white, padding: "22px 20px", border: "none" }}
               onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.15)"; }}
               onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
@@ -782,7 +784,7 @@ function DashboardPage({ sport, setPage }) {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {practicePlans.slice(0, 3).map(plan => (
-            <div key={plan.id} onClick={() => setPage("plans")} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 12, background: c.slate50, transition: "background 0.15s", cursor: "pointer" }}
+            <div key={plan.id} onClick={() => setPage("plans")} role="button" tabIndex={0} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPage("plans"); } }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 12, background: c.slate50, transition: "background 0.15s", cursor: "pointer" }}
               onMouseEnter={e => e.currentTarget.style.background = c.green50}
               onMouseLeave={e => e.currentTarget.style.background = c.slate50}>
               {plan.status === "complete" ? <CheckCircle2 size={20} color={c.green500} /> : <Circle size={20} color={c.slate300} />}
@@ -835,6 +837,7 @@ function DashboardPage({ sport, setPage }) {
 // ─── GENERATE PLAN PAGE (CoachPlan wizard integrated into Whistle shell) ─
 function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
   const [step, setStep] = useState(0);
+  const [teamsData] = useLocalStorage("teams", defaultTeamsData);
   const [config, setConfig] = useState({
     ageGroup: "", playerCount: 12, duration: 60,
     equipment: (EQUIPMENT_BY_SPORT[sport] || EQUIPMENT_BY_SPORT.Soccer).slice(0, 2), focusAreas: [],
@@ -929,7 +932,7 @@ function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
                     const teamAge = AGE_GROUPS.find(ag => ag.value === team.age);
                     const isSelected = config.ageGroup === team.age && config.playerCount === team.players.length;
                     return (
-                      <div key={team.id} onClick={() => setConfig(prev => ({ ...prev, ageGroup: team.age, playerCount: team.players.length }))}
+                      <div key={team.id} onClick={() => setConfig(prev => ({ ...prev, ageGroup: team.age, playerCount: team.players.length }))} {...clickableProps(() => setConfig(prev => ({ ...prev, ageGroup: team.age, playerCount: team.players.length })))}
                         style={{
                           ...selectCard(isSelected), flex: 1, padding: "16px 20px",
                           background: isSelected ? `linear-gradient(135deg, ${c.green50}, ${c.green100})` : c.white,
@@ -959,7 +962,7 @@ function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
             <label style={{ fontSize: 12, fontWeight: 600, color: c.slate500, textTransform: "uppercase", letterSpacing: 1 }}>Age Group</label>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, margin: "10px 0 24px 0" }}>
               {AGE_GROUPS.map(ag => (
-                <div key={ag.value} onClick={() => setConfig(prev => ({ ...prev, ageGroup: ag.value }))} style={selectCard(config.ageGroup === ag.value)}>
+                <div key={ag.value} onClick={() => setConfig(prev => ({ ...prev, ageGroup: ag.value }))} {...clickableProps(() => setConfig(prev => ({ ...prev, ageGroup: ag.value })))} style={selectCard(config.ageGroup === ag.value)}>
                   <div style={{ fontWeight: 600, color: c.slate800, fontSize: 15 }}>{ag.label}</div>
                   <div style={{ fontSize: 12, color: c.slate500, marginTop: 2 }}>{ag.philosophy}</div>
                 </div>
@@ -969,7 +972,7 @@ function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
             <label style={{ fontSize: 12, fontWeight: 600, color: c.slate500, textTransform: "uppercase", letterSpacing: 1 }}>Number of Players</label>
             <div style={{ display: "flex", gap: 8, margin: "10px 0 0 0", flexWrap: "wrap" }}>
               {[8, 10, 12, 14, 16, 18, 20, 22].map(n => (
-                <div key={n} onClick={() => setConfig(prev => ({ ...prev, playerCount: n }))}
+                <div key={n} onClick={() => setConfig(prev => ({ ...prev, playerCount: n }))} {...clickableProps(() => setConfig(prev => ({ ...prev, playerCount: n })))}
                   style={{ ...selectCard(config.playerCount === n), minWidth: 56, textAlign: "center" }}>
                   <span style={{ fontWeight: 700, color: c.slate800, fontSize: 16 }}>{n}</span>
                 </div>
@@ -987,7 +990,7 @@ function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
             <label style={{ fontSize: 12, fontWeight: 600, color: c.slate500, textTransform: "uppercase", letterSpacing: 1 }}>Duration (minutes)</label>
             <div style={{ display: "flex", gap: 10, margin: "10px 0 24px 0" }}>
               {DURATION_OPTIONS.map(d => (
-                <div key={d} onClick={() => setConfig(prev => ({ ...prev, duration: d }))}
+                <div key={d} onClick={() => setConfig(prev => ({ ...prev, duration: d }))} {...clickableProps(() => setConfig(prev => ({ ...prev, duration: d })))}
                   style={{ ...selectCard(config.duration === d), flex: 1, textAlign: "center", padding: "18px 16px" }}>
                   <span style={{ fontWeight: 700, fontSize: 24, color: c.slate800 }}>{d}</span>
                   <div style={{ fontSize: 12, color: c.slate500, marginTop: 2 }}>min</div>
@@ -1000,7 +1003,7 @@ function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
               {(EQUIPMENT_BY_SPORT[sport] || EQUIPMENT_BY_SPORT.Soccer).map(e => {
                 const selected = config.equipment.includes(e);
                 return (
-                  <div key={e} onClick={() => setConfig(prev => ({ ...prev, equipment: selected ? prev.equipment.filter(x => x !== e) : [...prev.equipment, e] }))}
+                  <div key={e} onClick={() => setConfig(prev => ({ ...prev, equipment: selected ? prev.equipment.filter(x => x !== e) : [...prev.equipment, e] }))} {...clickableProps(() => setConfig(prev => ({ ...prev, equipment: selected ? prev.equipment.filter(x => x !== e) : [...prev.equipment, e] })))}
                     style={{ ...selectCard(selected), textTransform: "capitalize", textAlign: "center", minWidth: 80, padding: "12px 18px" }}>
                     <span style={{ fontWeight: 600, color: c.slate800 }}>{e}</span>
                   </div>
@@ -1024,7 +1027,7 @@ function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
                   <div key={f.value} onClick={() => {
                     if (atMax) return;
                     setConfig(prev => ({ ...prev, focusAreas: selected ? prev.focusAreas.filter(x => x !== f.value) : [...prev.focusAreas, f.value] }));
-                  }}
+                  }} role="button" tabIndex={0} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (!atMax) setConfig(prev => ({ ...prev, focusAreas: selected ? prev.focusAreas.filter(x => x !== f.value) : [...prev.focusAreas, f.value] })); } }}
                     style={{ ...selectCard(selected), opacity: atMax ? 0.4 : 1, textAlign: "center", padding: "18px 10px" }}>
                     <div style={{ fontSize: 28, marginBottom: 4 }}>{f.icon}</div>
                     <div style={{ fontWeight: 600, color: c.slate800, fontSize: 13 }}>{f.label}</div>
@@ -1061,6 +1064,18 @@ function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
   );
 }
 
+// ─── KEYBOARD A11Y HELPER (makes clickable divs keyboard-accessible)
+function clickableProps(onClick) {
+  if (!onClick) return {};
+  return { role: "button", tabIndex: 0, onKeyDown: e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(e); } } };
+}
+
+// ─── HTML ESCAPE UTILITY (XSS prevention for document.write contexts)
+function escapeHTML(str) {
+  if (str == null) return "";
+  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
 // ─── EXPORT & PRINT HANDLERS
 function generatePlanTextSummary(plan, config, sport, ageInfo) {
   let summary = `${sport} Training Plan\n${ageInfo?.label || config.ageGroup} • ${config.playerCount} players • ${plan.reduce((sum, p) => sum + p.phaseDuration, 0)} minutes\n`;
@@ -1081,17 +1096,15 @@ function generatePrintHTML(plan, config, sport, ageInfo) {
   const totalTime = plan.reduce((sum, p) => sum + p.phaseDuration, 0);
   const phaseLabels = { "Warm-Up": "warmup", "Technical": "technical", "Tactical": "tactical", "Game": "game", "Cool-Down": "cooldown" };
   const phaseColorMap = { warmup: "#f59e0b", technical: "#3b82f6", tactical: "#8b5cf6", game: "#22c55e", cooldown: "#06b6d4" };
-  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${sport} Training Plan</title><style>body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #1e293b; margin: 0; padding: 20px; background: white; } .plan-container { max-width: 850px; margin: 0 auto; } .plan-header { margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; } .plan-header h1 { font-size: 28px; font-weight: 700; margin: 0 0 8px 0; color: #0f172a; } .plan-header p { margin: 4px 0; font-size: 14px; color: #475569; } .phase-bar { display: flex; border-radius: 6px; overflow: hidden; height: 12px; margin: 16px 0; background: #f1f5f9; } .drill-card { margin-bottom: 24px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; page-break-inside: avoid; } .drill-header { display: flex; align-items: center; margin-bottom: 14px; gap: 12px; } .drill-time-badge { width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; } .drill-title { flex: 1; } .drill-phase { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; } .drill-name { font-size: 18px; font-weight: 600; color: #1e293b; margin: 0; } .drill-description { color: #475569; font-size: 14px; line-height: 1.6; margin: 12px 0; } .coaching-points { margin: 12px 0; } .coaching-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; } .coaching-list { list-style: none; padding: 0; margin: 0; } .coaching-list li { font-size: 13px; color: #334155; margin-bottom: 6px; padding-left: 16px; position: relative; } .coaching-list li:before { content: "•"; position: absolute; left: 0; } .drill-details { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; font-size: 12px; } .detail-badge { padding: 6px 12px; background: #f1f5f9; border-radius: 6px; color: #475569; } @media print { body { margin: 0; padding: 0; } .drill-card { page-break-inside: avoid; break-inside: avoid; } @page { margin: 0.5in; } }</style></head><body><div class="plan-container"><div class="plan-header"><h1>${sport} Training Plan</h1><p><strong>${ageInfo?.label || config.ageGroup}</strong> • ${config.playerCount} players • ${totalTime} minutes</p>${config.focusAreas.length > 0 ? `<p><strong>Focus:</strong> ${config.focusAreas.join(", ")}</p>` : ""}${ageInfo?.philosophy ? `<p style="font-style: italic; color: #16a34a; margin-top: 8px;">${ageInfo.philosophy}</p>` : ""}<div class="phase-bar">${plan.map(p => { const phaseKey = phaseLabels[p.phaseLabel]; const color = phaseColorMap[phaseKey] || "#22c55e"; return `<div style="flex: ${p.phaseDuration}; background: ${color};"></div>`; }).join("")}</div></div>${plan.map((drill, idx) => { const phaseKey = phaseLabels[drill.phaseLabel]; const color = phaseColorMap[phaseKey] || "#22c55e"; let runningTime = 0; for (let j = 0; j < idx; j++) runningTime += plan[j].phaseDuration; return `<div class="drill-card"><div class="drill-header"><div class="drill-time-badge" style="background: ${color}20; color: ${color};">${drill.phaseDuration}'</div><div class="drill-title"><div class="drill-phase" style="color: ${color};">${drill.phaseLabel} • ${runningTime}'–${runningTime + drill.phaseDuration}'</div><h3 class="drill-name">${drill.name}</h3></div></div>${drill.description ? `<p class="drill-description">${drill.description}</p>` : ""}${drill.coaching?.length > 0 ? `<div class="coaching-points"><div class="coaching-label" style="color: ${color};">Coaching Points</div><ul class="coaching-list">${drill.coaching.map(point => `<li>${point}</li>`).join("")}</ul></div>` : ""}<div class="drill-details">${drill.equipment?.length > 0 ? drill.equipment.map(e => `<span class="detail-badge">${e}</span>`).join("") : ""}${drill.players ? `<span class="detail-badge">${drill.players[0]}–${drill.players[1]} players</span>` : ""}</div></div>`; }).join("")}</div></body></html>`;
+  const safeSport = escapeHTML(sport);
+  const safeAge = escapeHTML(ageInfo?.label || config.ageGroup);
+  const safePlayerCount = escapeHTML(config.playerCount);
+  const safeFocus = config.focusAreas.map(f => escapeHTML(f)).join(", ");
+  const safePhilosophy = escapeHTML(ageInfo?.philosophy);
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${safeSport} Training Plan</title><style>body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #1e293b; margin: 0; padding: 20px; background: white; } .plan-container { max-width: 850px; margin: 0 auto; } .plan-header { margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; } .plan-header h1 { font-size: 28px; font-weight: 700; margin: 0 0 8px 0; color: #0f172a; } .plan-header p { margin: 4px 0; font-size: 14px; color: #475569; } .phase-bar { display: flex; border-radius: 6px; overflow: hidden; height: 12px; margin: 16px 0; background: #f1f5f9; } .drill-card { margin-bottom: 24px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; page-break-inside: avoid; } .drill-header { display: flex; align-items: center; margin-bottom: 14px; gap: 12px; } .drill-time-badge { width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; } .drill-title { flex: 1; } .drill-phase { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; } .drill-name { font-size: 18px; font-weight: 600; color: #1e293b; margin: 0; } .drill-description { color: #475569; font-size: 14px; line-height: 1.6; margin: 12px 0; } .coaching-points { margin: 12px 0; } .coaching-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; } .coaching-list { list-style: none; padding: 0; margin: 0; } .coaching-list li { font-size: 13px; color: #334155; margin-bottom: 6px; padding-left: 16px; position: relative; } .coaching-list li:before { content: "•"; position: absolute; left: 0; } .drill-details { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; font-size: 12px; } .detail-badge { padding: 6px 12px; background: #f1f5f9; border-radius: 6px; color: #475569; } @media print { body { margin: 0; padding: 0; } .drill-card { page-break-inside: avoid; break-inside: avoid; } @page { margin: 0.5in; } }</style></head><body><div class="plan-container"><div class="plan-header"><h1>${safeSport} Training Plan</h1><p><strong>${safeAge}</strong> • ${safePlayerCount} players • ${totalTime} minutes</p>${config.focusAreas.length > 0 ? `<p><strong>Focus:</strong> ${safeFocus}</p>` : ""}${ageInfo?.philosophy ? `<p style="font-style: italic; color: #16a34a; margin-top: 8px;">${safePhilosophy}</p>` : ""}<div class="phase-bar">${plan.map(p => { const phaseKey = phaseLabels[p.phaseLabel]; const color = phaseColorMap[phaseKey] || "#22c55e"; return `<div style="flex: ${p.phaseDuration}; background: ${color};"></div>`; }).join("")}</div></div>${plan.map((drill, idx) => { const phaseKey = phaseLabels[drill.phaseLabel]; const color = phaseColorMap[phaseKey] || "#22c55e"; let runningTime = 0; for (let j = 0; j < idx; j++) runningTime += plan[j].phaseDuration; return `<div class="drill-card"><div class="drill-header"><div class="drill-time-badge" style="background: ${color}20; color: ${color};">${drill.phaseDuration}'</div><div class="drill-title"><div class="drill-phase" style="color: ${color};">${escapeHTML(drill.phaseLabel)} • ${runningTime}'–${runningTime + drill.phaseDuration}'</div><h3 class="drill-name">${escapeHTML(drill.name)}</h3></div></div>${drill.description ? `<p class="drill-description">${escapeHTML(drill.description)}</p>` : ""}${drill.coaching?.length > 0 ? `<div class="coaching-points"><div class="coaching-label" style="color: ${color};">Coaching Points</div><ul class="coaching-list">${drill.coaching.map(point => `<li>${escapeHTML(point)}</li>`).join("")}</ul></div>` : ""}<div class="drill-details">${drill.equipment?.length > 0 ? drill.equipment.map(e => `<span class="detail-badge">${escapeHTML(e)}</span>`).join("") : ""}${drill.players ? `<span class="detail-badge">${drill.players[0]}–${drill.players[1]} players</span>` : ""}</div></div>`; }).join("")}</div></body></html>`;
   return html;
 }
-function handleExportPDF(plan, config, sport, ageInfo) {
-  const printWindow = window.open("", "", "height=600,width=800");
-  const htmlContent = generatePrintHTML(plan, config, sport, ageInfo);
-  printWindow.document.write(htmlContent);
-  printWindow.document.close();
-  setTimeout(() => { printWindow.print(); }, 250);
-}
-function handlePrint(plan, config, sport, ageInfo) {
+function handlePrintOrExport(plan, config, sport, ageInfo) {
   const printWindow = window.open("", "", "height=600,width=800");
   const htmlContent = generatePrintHTML(plan, config, sport, ageInfo);
   printWindow.document.write(htmlContent);
@@ -1138,29 +1151,29 @@ function PlanResultPage({ plan: initialPlan, config, sport = "Soccer", setPage, 
 
       {/* Plan Header */}
       <div style={{ ...cardStyle, padding: "28px 32px", marginBottom: 24, cursor: "default" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div style={{ display: "flex", flexDirection: useIsMobile() ? "column" : "row", justifyContent: "space-between", alignItems: useIsMobile() ? "stretch" : "flex-start", gap: 16 }}>
           <div>
             <h1 style={{ fontSize: 26, fontWeight: 700, color: c.slate800, marginBottom: 4 }}>Your Training Plan</h1>
             <p style={{ fontSize: 14, color: c.slate500, marginBottom: 4 }}>{ageInfo?.label} \u00b7 {config.playerCount} players \u00b7 {totalTime} min \u00b7 Focus: {config.focusAreas.join(", ")}</p>
             {ageInfo?.philosophy && <p style={{ fontSize: 12, color: c.green600, fontStyle: "italic" }}>{ageInfo.philosophy}</p>}
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => { if (onSavePlan) onSavePlan(planTitle); setSaved(true); }} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: saved ? c.green700 : `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`, color: c.white, fontWeight: 600, fontSize: 13, cursor: saved ? "default" : "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: saved ? "none" : "0 2px 8px rgba(22,163,74,0.3)", transition: "all 0.3s ease", title: "Save this plan to your library" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <button onClick={() => { if (onSavePlan) onSavePlan(planTitle); setSaved(true); }} aria-label={saved ? "Plan saved" : "Save plan"} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: saved ? c.green700 : `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`, color: c.white, fontWeight: 600, fontSize: 13, cursor: saved ? "default" : "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: saved ? "none" : "0 2px 8px rgba(22,163,74,0.3)", transition: "all 0.3s ease" }}>
               <CheckCircle2 size={15} /> {saved ? "Plan Saved!" : "Save Plan"}
             </button>
-            <button onClick={() => handleExportPDF(plan, config, sport, ageInfo)} style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <button onClick={() => handlePrintOrExport(plan, config, sport, ageInfo)} aria-label="Export as PDF" style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <Download size={15} /> Export PDF
             </button>
-            <button onClick={() => handlePrint(plan, config, sport, ageInfo)} style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <button onClick={() => handlePrintOrExport(plan, config, sport, ageInfo)} aria-label="Print plan" style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <Printer size={15} /> Print
             </button>
-            <button onClick={() => handleShare(plan, config, sport, ageInfo)} style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <button onClick={() => handleShare(plan, config, sport, ageInfo)} aria-label="Share plan" style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <Share2 size={15} /> Share
             </button>
-            <button onClick={onRegenerate} style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <button onClick={onRegenerate} aria-label="Regenerate plan" style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <RotateCcw size={15} /> Regenerate
             </button>
-            <button onClick={() => setPage("generate")} style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <button onClick={() => setPage("generate")} aria-label="Edit settings" style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <ChevronLeft size={15} /> Edit Settings
             </button>
           </div>
@@ -1192,7 +1205,7 @@ function PlanResultPage({ plan: initialPlan, config, sport = "Soccer", setPage, 
           for (let j = 0; j < i; j++) runningTime += plan[j].phaseDuration;
 
           return (
-            <div key={i} onClick={() => setExpandedIdx(expanded ? null : i)} style={{
+            <div key={i} onClick={() => setExpandedIdx(expanded ? null : i)} {...clickableProps(() => setExpandedIdx(expanded ? null : i))} style={{
               ...cardStyle, border: expanded ? `2px solid ${color}` : `1px solid ${c.slate200}`,
             }}>
               <div style={{ padding: "18px 24px", display: "flex", alignItems: "center", gap: 16 }}>
@@ -1244,7 +1257,7 @@ function PlanResultPage({ plan: initialPlan, config, sport = "Soccer", setPage, 
                       <div style={{ fontSize: 12, fontWeight: 600, color: color, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Alternative Drills for {drill.phaseLabel}</div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         {getAlternatives(drill).map(alt => (
-                          <div key={alt.id} onClick={(e) => { e.stopPropagation(); swapDrill(i, alt); }}
+                          <div key={alt.id} onClick={(e) => { e.stopPropagation(); swapDrill(i, alt); }} role="button" tabIndex={0} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); swapDrill(i, alt); } }}
                             style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: c.white, borderRadius: 10, border: `1px solid ${c.slate200}`, cursor: "pointer", transition: "all 0.15s" }}
                             onMouseEnter={e => { e.currentTarget.style.borderColor = color; e.currentTarget.style.background = `${color}08`; }}
                             onMouseLeave={e => { e.currentTarget.style.borderColor = c.slate200; e.currentTarget.style.background = c.white; }}>
@@ -1303,7 +1316,7 @@ function DrillsPage({ sport, setPage, setSelectedDrill }) {
       <PageHero gradient={`linear-gradient(135deg, ${c.slate900} 0%, ${c.slate700} 100%)`}
         title={`${sportConfig[sport].emoji} Drill Library`}
         subtitle={`Browse ${drills.length} ${sport.toLowerCase()} drills with coaching points and diagrams`}
-        actions={<><HeroBtn label="Create Drill" primary icon={Plus} /><HeroBtn label={showFavoritesOnly ? "All Drills" : "Favorites"} icon={Heart} onClick={() => setShowFavoritesOnly(!showFavoritesOnly)} /></>}
+        actions={<><HeroBtn label="Create Drill" primary icon={Plus} onClick={() => alert("Custom drill creation coming soon!")} /><HeroBtn label={showFavoritesOnly ? "All Drills" : "Favorites"} icon={Heart} onClick={() => setShowFavoritesOnly(!showFavoritesOnly)} /></>}
       />
       <div style={{ display: "flex", gap: 12, marginBottom: 24, alignItems: "center" }}>
         <div style={{ position: "relative", flex: 1 }}>
@@ -1336,10 +1349,10 @@ function DrillsPage({ sport, setPage, setSelectedDrill }) {
             const isFavorite = favorites.includes(drill.id);
             return (
               <HoverCard key={drill.id}>
-                <div style={{ padding: 14 }} onClick={() => { setSelectedDrill(drill); setPage("drill-detail"); }}><MiniField seed={drill.id} sport={sport} /></div>
+                <div style={{ padding: 14, cursor: "pointer" }} onClick={() => { setSelectedDrill(drill); setPage("drill-detail"); }} {...clickableProps(() => { setSelectedDrill(drill); setPage("drill-detail"); })}><MiniField seed={drill.id} sport={sport} /></div>
                 <div style={{ padding: "4px 18px 18px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, color: c.slate800, cursor: "pointer", flex: 1 }} onClick={() => { setSelectedDrill(drill); setPage("drill-detail"); }}>{drill.name}</h3>
+                    <h3 style={{ fontSize: 15, fontWeight: 700, color: c.slate800, cursor: "pointer", flex: 1 }} onClick={() => { setSelectedDrill(drill); setPage("drill-detail"); }} {...clickableProps(() => { setSelectedDrill(drill); setPage("drill-detail"); })}>{drill.name}</h3>
                     <button onClick={(e) => { e.stopPropagation(); toggleFavorite(drill.id); }} style={{ padding: "4px 8px", borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", marginLeft: 8 }}>
                       <Heart size={16} color={isFavorite ? c.rose500 : c.slate300} fill={isFavorite ? c.rose500 : "none"} />
                     </button>
@@ -1347,7 +1360,7 @@ function DrillsPage({ sport, setPage, setSelectedDrill }) {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                     <span style={{ fontSize: 13, color: c.slate500, fontWeight: 500, display: "flex", alignItems: "center", gap: 4 }}><Timer size={13} />{drill.duration} min</span>
                   </div>
-                  <div style={{ cursor: "pointer" }} onClick={() => { setSelectedDrill(drill); setPage("drill-detail"); }}>
+                  <div style={{ cursor: "pointer" }} onClick={() => { setSelectedDrill(drill); setPage("drill-detail"); }} {...clickableProps(() => { setSelectedDrill(drill); setPage("drill-detail"); })}>
                     <p style={{ fontSize: 13, color: c.slate500, lineHeight: 1.4, marginBottom: 12 }}>{drill.desc || drill.description}</p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       <span style={{ ...badgeBase, background: cat.bg, color: cat.color }}>{drill.category}</span>
@@ -1503,7 +1516,7 @@ function TeamsPage({ sport, setPage, setSelectedTeam }) {
     <div>
       <PageHero gradient={sportConfig[sport].heroGradient} title={`${sportConfig[sport].emoji} My Teams`}
         subtitle="Manage your teams and rosters"
-        actions={<HeroBtn label="Create Team" primary icon={Plus} />}
+        actions={<HeroBtn label="Create Team" primary icon={Plus} onClick={() => alert("Team creation coming soon!")} />}
       />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
         {teams.map(team => (
@@ -1655,6 +1668,24 @@ function PricingPage({ sport }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ERROR BOUNDARY
+// ═══════════════════════════════════════════════════════════════════════════
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  render() {
+    if (this.state.hasError) {
+      return React.createElement("div", { style: { padding: 40, textAlign: "center" } },
+        React.createElement("h2", { style: { fontSize: 20, fontWeight: 600, color: "#334155", marginBottom: 8 } }, "Something went wrong"),
+        React.createElement("p", { style: { color: "#64748b", marginBottom: 16 } }, "An error occurred while loading this page."),
+        React.createElement("button", { onClick: () => this.setState({ hasError: false, error: null }), style: { padding: "10px 20px", borderRadius: 8, border: "none", background: "#16a34a", color: "#fff", fontWeight: 600, cursor: "pointer" } }, "Try Again")
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN APP
 // ═══════════════════════════════════════════════════════════════════════════
 export default function WhistleApp() {
@@ -1668,6 +1699,15 @@ export default function WhistleApp() {
   const [planConfig, setPlanConfig] = useState(null);
   const [planKey, setPlanKey] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const mainRef = useRef(null);
+
+  // Focus management: scroll to top and focus main content on page change
+  useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTo(0, 0);
+      mainRef.current.focus({ preventScroll: true });
+    }
+  }, [page]);
   const [plans, setPlans] = useLocalStorage("practicePlans", defaultPracticePlans);
   const [history, setHistory] = useLocalStorage("practiceHistory", defaultHistoryData);
 
@@ -1742,24 +1782,25 @@ export default function WhistleApp() {
         }}>
         <Sidebar page={page} setPage={setPage} sport={sport} setSport={setSport} sportOpen={sportOpen} setSportOpen={setSportOpen} isMobile={isMobile} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
         {isMobile && sidebarOpen && <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.3)", zIndex: 999, display: sidebarOpen ? "block" : "none" }} />}
-        <main style={{
+        <main ref={mainRef} tabIndex={-1} role="main" aria-label="Page content" style={{
           marginLeft: isMobile ? 0 : 240,
           flex: 1,
           padding: isMobile ? "12px 16px" : "28px 36px",
           maxWidth: isMobile ? "100%" : 1200,
+          outline: "none",
           position: "relative",
           width: "100%",
           overflow: "hidden"
         }}>
           {isMobile && (
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, paddingTop: 4 }}>
-              <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ padding: "8px", borderRadius: 8, border: `1px solid ${c.slate200}`, background: c.white, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 44, minWidth: 44 }}>
+              <button onClick={() => setSidebarOpen(!sidebarOpen)} aria-label={sidebarOpen ? "Close menu" : "Open menu"} aria-expanded={sidebarOpen} style={{ padding: "8px", borderRadius: 8, border: `1px solid ${c.slate200}`, background: c.white, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 44, minWidth: 44 }}>
                 {sidebarOpen ? <X size={20} color={c.slate800} /> : <Menu size={20} color={c.slate800} />}
               </button>
               <div style={{ fontSize: 16, fontWeight: 600, color: c.slate800 }}>Whistle</div>
             </div>
           )}
-          {pages[page]}
+          <ErrorBoundary key={page}>{pages[page]}</ErrorBoundary>
         </main>
       </div>
     </>
