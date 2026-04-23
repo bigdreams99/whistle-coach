@@ -492,9 +492,11 @@ function generatePlan(config, sport = "Soccer") {
     (Array.isArray(d.players) ? d.players[0] <= playerCount : true)
   );
 
+  const usedIds = new Set();
   const pick = (phase, preferred) => {
-    let pool = available.filter(d => d.phase === phase);
-    if (pool.length === 0) pool = available; // fallback: use any drill if phase is empty
+    let pool = available.filter(d => d.phase === phase && !usedIds.has(d.id));
+    if (pool.length === 0) pool = available.filter(d => !usedIds.has(d.id)); // fallback: any unused drill
+    if (pool.length === 0) pool = available.filter(d => d.phase === phase); // last resort: allow repeats
     if (preferred.length > 0) {
       const scored = pool.map(d => ({
         ...d, score: d.focus.filter(f => preferred.includes(f)).length,
@@ -503,7 +505,9 @@ function generatePlan(config, sport = "Soccer") {
       pool = scored;
     }
     const top = pool.slice(0, Math.max(3, pool.length));
-    return top[Math.floor(Math.random() * top.length)] || pool[0];
+    const selected = top[Math.floor(Math.random() * top.length)] || pool[0];
+    if (selected) usedIds.add(selected.id);
+    return selected;
   };
 
   const isYoung = ["U6", "U8"].includes(ageGroup);
