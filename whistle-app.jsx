@@ -175,7 +175,7 @@ const FOCUS_OPTIONS = FOCUS_OPTIONS_BY_SPORT.Soccer; // backward compat
 const EQUIPMENT_BY_SPORT = {
   Soccer: ["cones", "balls", "bibs", "goals"],
   Basketball: ["balls", "cones", "bibs"],
-  Baseball: ["balls", "gloves", "bat", "bases", "tee"],
+  Baseball: ["balls", "gloves", "bat", "bases", "tee", "cones", "helmets"],
   Football: ["balls", "cones", "flags", "pads", "ladder"],
 };
 const EQUIPMENT_OPTIONS = EQUIPMENT_BY_SPORT.Soccer; // backward compat
@@ -383,6 +383,25 @@ const drillsBySport = {
     // ── FUN / YOUNG PLAYER GAMES ────────────────────────────────────────
     { id: 224, name: "Pickle (Rundown)", duration: 8, category: "game", ages: ["U6","U8","U10","U12","U14"], skills: ["Baserunning","Throwing","Fun"], desc: "Classic rundown game — runner caught between two bases", intensity: "high", players: "3+", equipment: ["Balls","Gloves","Bases"], instructions: "Two fielders at adjacent bases, one runner in between.\n1. Runner tries to reach either base safely\n2. Fielders throw back and forth, closing the gap\n3. Run the runner back toward the base they came from\n4. Tag the runner out", coaching: ["Fielders: run at the runner, don't just throw. Get the runner going one direction. Quick tags, no fakes near the face."], variations: "Add a trailing runner. Multiple runners in the pickle." },
     { id: 225, name: "Home Run Derby", duration: 10, category: "game", ages: ["U8","U10","U12","U14"], skills: ["Batting","Fun"], desc: "Each player gets swings to hit as many home runs or long balls as possible", intensity: "medium", players: "4+", equipment: ["Balls","Bat","Bases"], instructions: "Mark a 'home run' line with cones.\n1. Each batter gets 10 swings (5 outs = done)\n2. Balls past the line = home run\n3. Fielders shag and return balls\n4. Highest home run total wins", coaching: ["Swing hard but stay balanced. Hit the ball in the air — drive it. Compete and have fun."], variations: "Use a tee for younger players. Opposite-field bonus points." },
+    // ── NEW BASEBALL DRILLS ──────────────────────────────────────────────
+    { id: 226, name: "Sharks & Minnows Baserunning", duration: 8, category: "warmup", ages: ["U6","U8","U10"], skills: ["Baserunning","Agility","Reaction"], desc: "Fun tag-based warmup where runners dodge fielders between bases", intensity: "medium", players: "6+", equipment: ["Bases"], instructions: "Set up two bases 60 feet apart. 1-2 sharks stand in the middle. Minnows sprint across on whistle. Tagged minnows become sharks. Last minnow standing wins.", coaching: ["Change speed and direction","Proper tag technique","Keep energy high"], variations: "Sliding to be safe at base. Add a second middle zone." },
+    { id: 227, name: "Four Corners Throwing Warmup", duration: 10, category: "warmup", ages: ["U8","U10","U12","U14"], skills: ["Throwing","Catching","Footwork"], desc: "Dynamic group warmup combining throwing, catching, and movement patterns", intensity: "medium", players: "8+", equipment: ["Balls","Gloves"], instructions: "Four cones in a square 40 feet apart. Player throws to next cone then jogs there. After 3 min reverse direction. Then cross pattern for longer throws.", coaching: ["Proper crow-hop footwork","Clear glove target","Increase distance gradually"], variations: "Ground ball rollers instead of throws. Time the group for 20 circuits." },
+    { id: 228, name: "Opposite Field Hitting", duration: 12, category: "technical", ages: ["U10","U12","U14"], skills: ["Hitting","Bat Control"], desc: "Teaches hitters to drive the ball to the opposite field", intensity: "medium", players: "2+", equipment: ["Balls","Bat","Tee"], instructions: "Tee on outside of plate. 10 reps off tee, then soft toss from outside angle. Coach calls inside/outside on front toss — pull inside, go oppo on outside.", coaching: ["Hands inside the ball","Front shoulder stays closed longer","Let ball travel deep in zone","Don't reach — let it come to you"], variations: "Cone target in opposite field gap. Live pitching with oppo-only rule." },
+    { id: 229, name: "Drag Bunt for a Hit", duration: 10, category: "technical", ages: ["U10","U12","U14"], skills: ["Bunting","Bat Control","Speed"], desc: "Push/drag bunt technique for getting on base", intensity: "medium", players: "2+", equipment: ["Balls","Bat","Cones"], instructions: "Cones mark target zones along each baseline. Coach soft tosses, hitter bunts to zone then sprints to first. 5 reps each side.", coaching: ["Top hand cushions the ball","Start running as bat makes contact","Bunt strikes only","Barrel above hands to avoid pop-ups"], variations: "Add a fielder for pressure. Time bunt-to-first." },
+    { id: 230, name: "Live Batting Practice", duration: 20, category: "technical", ages: ["U10","U12","U14"], skills: ["Hitting","Pitch Recognition","Timing"], desc: "Full-speed BP with coach pitching live, simulating real at-bats", intensity: "high", players: "4+", equipment: ["Balls","Bat","Bases","Helmets"], instructions: "Coach pitches from L-screen. 3 rounds of 5 pitches: Round 1 all fields, Round 2 situational hitting, Round 3 two-strike approach.", coaching: ["Have a plan before each pitch","Line drives over hard swings","Fielders stay engaged","Rotate quickly for max reps"], variations: "Add live catcher. Put runners on base for situations." },
+    { id: 231, name: "Short-Hop Picks", duration: 10, category: "technical", ages: ["U8","U10","U12","U14"], skills: ["Fielding","Glove Work"], desc: "Develops ability to field short-hop throws and difficult bounces", intensity: "medium", players: "2+", equipment: ["Balls","Gloves"], instructions: "Pairs 30-40 feet apart. Thrower bounces short hops. Start on knees 2 min, stand 3 min, then add lateral movement. Finish with rapid-fire round.", coaching: ["Glove works through the ball","Read the bounce early","Soft hands — give with the catch","Stay low from the knees"], variations: "First basemen at a base from 60 feet. Tennis balls for younger players." },
+    { id: 232, name: "Bare-Hand Fielding", duration: 8, category: "technical", ages: ["U6","U8","U10","U12"], skills: ["Fielding","Soft Hands"], desc: "Removes the glove to teach proper fielding fundamentals", intensity: "low", players: "2+", equipment: [], instructions: "No gloves. Coach rolls tennis balls. Field with two-hand alligator technique. 5 reps straight, 5 forehand, 5 backhand. Progress to light one-hoppers.", coaching: ["Get low — butt down, hands out front","Use two hands, funnel to belly","Attack the ball aggressively","Teaches feel the glove can't"], variations: "Roll two balls in quick succession. Regular baseballs with slow rollers for older players." },
+    { id: 233, name: "Infield-Outfield Communication", duration: 12, category: "tactical", ages: ["U10","U12","U14"], skills: ["Communication","Fielding"], desc: "Trains proper call-off communication on fly balls between infielders and outfielders", intensity: "medium", players: "8+", equipment: ["Balls","Gloves"], instructions: "Full infield and outfield. Coach hits fungos into tweener zones. Players must call 'Ball! Ball! Ball!' Outfielder always has priority. Run 15-20 fly balls.", coaching: ["Outfielder ALWAYS has priority","Call early and loud — three times","No call = communication error","Infielder: listen for outfielder's call"], variations: "Add runners on base. Put a runner tagging up." },
+    { id: 234, name: "Bullpen Session", duration: 15, category: "technical", ages: ["U10","U12","U14"], skills: ["Pitching","Mechanics","Location"], desc: "Structured bullpen for mechanics, location, and pitch sequencing", intensity: "medium", players: "2+", equipment: ["Balls","Gloves"], instructions: "30-40 pitches total. First 10: fastballs middle for mechanics. Next 10: inside/outside corners. Next 10: changeup or secondary. Final 5-10: simulated at-bats.", coaching: ["Every pitch has a purpose","Consistent release point","Stop and reset if mechanics break down","Track strikes vs balls"], variations: "Batter standing in without swinging. Chart every pitch on strike zone grid." },
+    { id: 235, name: "Changeup Development", duration: 10, category: "technical", ages: ["U10","U12","U14"], skills: ["Pitching","Arm Speed"], desc: "Teaches changeup grip, arm speed, and release", intensity: "low", players: "2+", equipment: ["Balls","Gloves"], instructions: "Circle change or three-finger grip instruction. Phase 1: 10 throws at 30 feet into net. Phase 2: 10 at 45 feet. Phase 3: alternate fastball-changeup from mound.", coaching: ["Arm speed must match fastball — grip creates the change","Ball deep in the palm, not fingertips","Slight pronation on release","Aim for 8-12 mph slower than fastball"], variations: "Hitter stands in for feedback. Use radar gun for speed differential." },
+    { id: 236, name: "Lead-Off Reads", duration: 10, category: "tactical", ages: ["U10","U12","U14"], skills: ["Baserunning","Reaction","Game IQ"], desc: "Teaches runners proper leads and pitcher reads", intensity: "medium", players: "4+", equipment: ["Bases","Gloves","Balls"], instructions: "Runner at first. Coach acts as pitcher from stretch. Primary lead (shuffle steps), secondary lead as pitcher delivers. Mix in pickoff attempts. Add steal reads based on front heel.", coaching: ["Shuffle steps only — never cross feet","Eyes on pitcher's front hip and heel","Dive back on pickoff — hand on back corner","Secondary lead as pitcher commits home"], variations: "Add live first baseman. Advance to second base leads." },
+    { id: 237, name: "First-to-Third Baserunning", duration: 10, category: "tactical", ages: ["U10","U12","U14"], skills: ["Baserunning","Reads","Speed"], desc: "Read hits from first base to advance to third", intensity: "high", players: "4+", equipment: ["Bases","Balls","Gloves"], instructions: "Runner on first. Coach hits singles to LF, CF, RF. Read ball off bat, round second aggressively, decide advance or hold. Third base coach gives signals.", coaching: ["Touch inside of bag with left foot rounding","Line drive to RF is automatic go","Trust the third base coach","Bobbled ball = take the extra base"], variations: "Add cutoff man with live throw. Score: +1 safe at third, -1 thrown out." },
+    { id: 238, name: "Cutoff & Relay Situations", duration: 15, category: "tactical", ages: ["U10","U12","U14"], skills: ["Throwing","Communication","Positioning"], desc: "Full-team cutoff and relay positioning on extra-base hits", intensity: "medium", players: "9+", equipment: ["Balls","Gloves","Bases"], instructions: "Full defense. Coach hits to outfield gaps and over heads. Relay man lines up between fielder and target. Three situations: L-C gap to third, R-C gap to third, over head double relay to home.", coaching: ["Relay man: direct line between fielder and target","Arms up so outfielder can find you","Catch relay, turn glove-side, quick throw","Everyone not catching/throwing is backing up"], variations: "Add baserunners for live play. Time from bat contact to base." },
+    { id: 239, name: "Defending the Bunt", duration: 12, category: "tactical", ages: ["U10","U12","U14"], skills: ["Fielding","Communication","Game IQ"], desc: "Team bunt defense positioning and responsibilities", intensity: "medium", players: "9+", equipment: ["Balls","Gloves","Bat","Bases"], instructions: "Full infield with runner on first. Two coverages: rotation play and wheel play. Walk through each, then run live reps with bunter. 5 reps each coverage.", coaching: ["Pitcher is the quarterback — calls who fields","3B and 1B charge aggressively on bunt show","Catcher yells the base number","Field bunt like a short-hop pick — stay low"], variations: "Mix in fake bunts. Add drag bunt scenario." },
+    { id: 240, name: "Hit-and-Run", duration: 12, category: "tactical", ages: ["U12","U14"], skills: ["Hitting","Baserunning","Game IQ"], desc: "Execute the hit-and-run with live runners and defense", intensity: "high", players: "6+", equipment: ["Balls","Bat","Bases","Helmets"], instructions: "Runner on first gets sign. On pitch, runner breaks for second. Hitter must make contact, aim right side. 8-10 reps per hitter with live defense.", coaching: ["Hitter MUST make contact — shorten up","Aim right side to protect runner","Runner: peek at home as you approach second","Foul it off if pitch is way out of zone"], variations: "Different counts. Add outfield for full results. Score successful vs failed." },
+    { id: 241, name: "Base Race Relay", duration: 10, category: "game", ages: ["U6","U8","U10"], skills: ["Baserunning","Speed","Fun"], desc: "Relay race around the bases teaching proper base-touching technique", intensity: "high", players: "6+", equipment: ["Bases","Cones"], instructions: "Teams at home plate. Sprint around bases relay-style. Round 1: normal. Round 2: bases backward. Round 3: stop at second for 3 jumping jacks. First team done wins.", coaching: ["Touch inside corner with left foot","Lean into turns","Missing a base = go back","Cheer for teammates"], variations: "Cones to weave between bases. Sliding relay at second." },
+    { id: 242, name: "Wiffle Ball Scrimmage", duration: 15, category: "game", ages: ["U6","U8","U10"], skills: ["Hitting","Fielding","Fun"], desc: "Low-pressure scrimmage with wiffle balls for young players", intensity: "medium", players: "6+", equipment: ["Balls","Bat","Cones"], instructions: "Small diamond with cones 30-40 feet apart. Coach pitches wiffle balls. No strikeouts for U6, no stealing. Every player bats each inning. 3 innings.", coaching: ["Celebrate effort over results","Pause to teach rules naturally","Encourage throwing to bases","Close calls = runner is safe"], variations: "Bonus points for sportsmanship. Older players pitch to younger ones." },
+    { id: 243, name: "Baseball Yoga Cooldown", duration: 8, category: "cooldown", ages: ["U6","U8","U10","U12","U14"], skills: ["Flexibility","Recovery"], desc: "Baseball-themed yoga poses for flexibility and calm", intensity: "low", players: "1+", equipment: [], instructions: "Spread out. 'The Windup' — one leg balance. 'Stretch Single' — wide lunge. 'Dugout Seat' — squat hold. 'Sliding Stretch' — seated straddle. 'Victory Pose' — arms wide, deep breathing. End lying on backs for 1 min.", coaching: ["Breathe in 4 counts, out 4 counts","Name poses and tell a story for young players","Never force a stretch","Use this time for positive feedback"], variations: "Different player leads each practice. Add arm circles for pitchers." },
   ],
   Football: [
     // ── WARM-UP ─────────────────────────────────────────────────────────
@@ -426,6 +445,25 @@ const drillsBySport = {
     { id: 327, name: "Four-Corner Agility", duration: 6, category: "warmup", ages: ["U6","U8","U10","U12","U14"], skills: ["Agility","Speed"], desc: "Sprint, shuffle, backpedal, and sprint through a four-cone square", intensity: "high", players: "1+", equipment: ["Cones"], instructions: "Set up a 10x10 yard square with cones.\n1. Sprint forward to cone 2\n2. Shuffle right to cone 3\n3. Backpedal to cone 4\n4. Sprint diagonally back to cone 1\nTime each run, beat your best", coaching: ["Stay low on the shuffle. Quick feet on the backpedal. Explode on the sprint."], variations: "Add a ball catch at each corner. Race a partner." },
     // ── TWO-MINUTE DRILL ───────────────────────────────────────────────
     { id: 328, name: "Two-Minute Drill", duration: 10, category: "game", ages: ["U10","U12","U14"], skills: ["Offense","Clock Management"], desc: "Simulated end-of-half/game situation with a running clock", intensity: "high", players: "10+", equipment: ["Balls","Cones","Flags"], instructions: "Offense starts at the 40-yard line, 2 minutes on the clock.\n1. No huddle — QB calls plays at the line\n2. Manage timeouts (3 total)\n3. Spike the ball to stop the clock if needed\n4. Score before time runs out", coaching: ["Know when to go out of bounds. Communicate quickly. Stay calm under pressure. Clock awareness."], variations: "Vary starting field position. Down by different scores." },
+    // ── NEW FOOTBALL DRILLS ──────────────────────────────────────────────
+    { id: 329, name: "Sharks & Minnows", duration: 8, category: "warmup", ages: ["U6","U8","U10"], skills: ["Agility","Evasion","Ball Security"], desc: "Tag-based warmup where ball carriers dodge defenders to cross the field", intensity: "medium", players: "6+", equipment: ["Balls","Cones"], instructions: "30x20 grid. Sharks in middle, minnows with footballs on end line. Sprint across without getting tagged. Tagged players become sharks. Last minnow wins.", coaching: ["Ball tucked in arm furthest from defender","Sharks stay low and move feet","Use change of direction over straight sprints","Short rest between rounds"], variations: "Flags instead of tags. Shrink grid as fewer minnows remain." },
+    { id: 330, name: "Animal Movement Warmup", duration: 6, category: "warmup", ages: ["U6","U8"], skills: ["Coordination","Flexibility","Balance"], desc: "Players mimic animal movements across the field to warm up", intensity: "low", players: "2+", equipment: ["Cones"], instructions: "Two cone lines 15 yards apart. Bear Crawl, Crab Walk, Frog Jumps, Gorilla Shuffle, Cheetah Sprint. Each animal once, then repeat favorites. End with two light jog laps.", coaching: ["Fun voices when calling animals","Watch for proper form","Frog jumps land softly with bent knees","Assess mobility during movement"], variations: "Add a football to carry. Let players suggest animals. Race format." },
+    { id: 331, name: "RAC Attack Drill", duration: 12, category: "technical", ages: ["U8","U10","U12","U14"], skills: ["Catching","Run After Catch","Evasion"], desc: "Receivers catch short passes then navigate through obstacles for yards after catch", intensity: "high", players: "4+", equipment: ["Balls","Cones"], instructions: "5-yard catch zone, then 3 staggered cones at 5/10/15 yards. QB throws hitch or slant. Receiver catches, tucks, jukes cone 1, absorbs contact at cone 2, accelerates past cone 3.", coaching: ["Secure ball before looking upfield","Tuck to outside arm","Quick catch-to-run transition","Lean into contact, keep feet churning"], variations: "Live defender at 50%. Different route types. Remove bag for U8." },
+    { id: 332, name: "Contested Catch Circuit", duration: 10, category: "technical", ages: ["U10","U12","U14"], skills: ["Catching","Body Positioning","Concentration"], desc: "Receivers practice catching with a defender draped on them", intensity: "medium", players: "4+", equipment: ["Balls","Cones"], instructions: "3 stations, 2 min each. Station 1: Back shoulder fade catches. Station 2: Crossing route with bump from bag holder. Station 3: 50/50 jump ball vs DB.", coaching: ["Big hands — spread fingers, attack at highest point","Body positioning over height","Eyes on ball through hands — don't flinch","Tuck and protect immediately after catch"], variations: "Point system: 2 for clean catch, 1 for tipped recovery. Full speed on 50/50 balls." },
+    { id: 333, name: "Cutback Read Drill", duration: 10, category: "technical", ages: ["U8","U10","U12","U14"], skills: ["Vision","Cutting","Patience","Ball Security"], desc: "RBs read a moving defender to decide stay on path or cut back", intensity: "high", players: "3+", equipment: ["Balls","Cones"], instructions: "4 cones as gaps, defender 5 yards deep who shifts left/right after snap. RB takes handoff and reads: if defender flows hard, plant and cut back. If stays home, hit designed hole. 5 reps each direction.", coaching: ["Patience — don't commit until defender's hips turn","Plant hard on inside foot","Stay low through the cut","Switch ball to outside arm after cut"], variations: "Add lead blocker. Two second-level defenders. Walk through for U8 first." },
+    { id: 334, name: "RB Pass Protection", duration: 10, category: "technical", ages: ["U10","U12","U14"], skills: ["Pass Protection","Footwork","Recognition"], desc: "Running backs identify and pick up blitzing defenders", intensity: "medium", players: "3+", equipment: ["Cones"], instructions: "QB in pocket, RB in backfield. Coach sends 1 of 3 rushers from different angles. Phase 1: coach points to rusher. Phase 2: RB reads on their own. Rushers at 75%.", coaching: ["Eyes on line first, then scan for blitzers","Get feet set before contact","Hands inside, punch to chest","Cut block at knees if can't square up"], variations: "Add hot route — RB releases as safety valve. Send two rushers." },
+    { id: 335, name: "Pass Rush Moves Workshop", duration: 12, category: "technical", ages: ["U10","U12","U14"], skills: ["Pass Rush","Hand Technique","Explosiveness"], desc: "DL practice three core pass rush moves against a blocker", intensity: "high", players: "4+", equipment: ["Cones","Pads"], instructions: "3 stations, 3 min each. Station 1 Speed Rush: dip inside shoulder, rip arm through. Station 2 Bull Rush: punch both hands, drive feet. Station 3 Spin Move: attack outside, plant, spin inside tight.", coaching: ["First step is everything — explode low and fast","Keep hands active — dead hands get stonewalled","Dip-and-rip happens simultaneously","Spin move: stay tight to blocker"], variations: "Add counter-move concept. Time each rep — beat 3-second clock to QB spot." },
+    { id: 336, name: "DB Press Coverage", duration: 10, category: "technical", ages: ["U10","U12","U14"], skills: ["Press Technique","Footwork","Jamming"], desc: "DBs practice jamming receivers at the line and transitioning into coverage", intensity: "medium", players: "4+", equipment: ["Cones"], instructions: "DB 1 yard off line. Phase 1: Punch & mirror release for 5 yards. Phase 2: Press to cover on assigned routes. Phase 3: Live 1v1 competition.", coaching: ["Inside foot forward — take away inside release","Jam with force but don't lunge","Read receiver's hips, not head","Half-turn hip flip so you can break back"], variations: "Press against trips formation. Add off-coverage rep for comparison." },
+    { id: 337, name: "Kickoff Coverage Lanes", duration: 12, category: "tactical", ages: ["U10","U12","U14"], skills: ["Speed","Lane Discipline","Special Teams"], desc: "Players maintain coverage lanes and converge on ball carrier during kickoff", intensity: "high", players: "10+", equipment: ["Balls","Cones"], instructions: "Full-width kickoff with cones marking 5 lanes. 2 players per lane plus kicker. 4 blockers and a returner. Phase 1: walk-through. Phase 2: 75% with blockers. Phase 3: full speed.", coaching: ["Stay in your lane — freelancing creates gaps","Sprint to 30 then break down","Keep head on swivel for blockers","Contain players never let runner get outside"], variations: "Squib kick adjustments. Onside kick recovery." },
+    { id: 338, name: "Field Goal & PAT Unit", duration: 10, category: "technical", ages: ["U10","U12","U14"], skills: ["Snapping","Holding","Kicking"], desc: "Full FG/PAT unit practices snap-hold-kick timing and protection", intensity: "low", players: "5+", equipment: ["Balls","Cones"], instructions: "Center, holder, kicker, 2 wing blockers. Phase 1: snap & hold only (target 0.8s). Phase 2: full operation (target 1.3s snap-to-kick). Phase 3: add edge rushers.", coaching: ["Center: firm spiral snap","Holder: laces out immediately","Kicker: head down through the ball","Same approach every time"], variations: "Move back to 20-yard line for FG distance. Fake FG play." },
+    { id: 339, name: "Screen Pass Install", duration: 12, category: "tactical", ages: ["U10","U12","U14"], skills: ["Timing","Blocking","Deception"], desc: "Install three types of screen passes: RB screen, bubble screen, tunnel screen", intensity: "medium", players: "7+", equipment: ["Balls","Cones"], instructions: "Phase 1: RB screen — OL pass sets 2 counts, releases to flat. Phase 2: Bubble screen — WR pivots back, slot/others crack block. Phase 3: Tunnel screen — inside receiver crosses behind LOS, OL leaks out to lead block.", coaching: ["QB must sell the fake before delivering","Blockers sustain — don't bump and fall off","Ball carrier gets behind blockers","OL release should look natural"], variations: "Add defensive look for right-call reads. Screen off play-action fake." },
+    { id: 340, name: "Play-Action Bootleg Series", duration: 12, category: "tactical", ages: ["U10","U12","U14"], skills: ["Play Fake","Decision Making"], desc: "QB and skill players sell run fake and execute bootleg pass concepts", intensity: "medium", players: "6+", equipment: ["Balls","Cones"], instructions: "Phase 1: Run fake fundamentals — mesh point drill. Phase 2: Add 3 receivers (drag, deep crosser, clear-out). QB fakes, boots, reads drag then crosser. Phase 3: Add DE and LB for live reads.", coaching: ["Fake must be convincing — extend ball fully","Get depth on the boot","First read is the drag — highest percentage","If nothing open, tuck and run upfield"], variations: "Run real handoff 2 times first, then play-action off same look." },
+    { id: 341, name: "Goal-Line Offense vs Defense", duration: 15, category: "game", ages: ["U10","U12","U14"], skills: ["Goal Line","Physicality","Play Calling"], desc: "Team scrimmage from the 5-yard line", intensity: "high", players: "10+", equipment: ["Balls","Cones"], instructions: "Ball on 5-yard line. Offense gets 4 plays to score. 4 plays: QB sneak, power run, fade, sprint-out pass. Defense runs goal-line base. Walk through then go live. Keep score.", coaching: ["Offense: get low and drive legs","Defense: gap discipline is critical","QB reads pre-snap — stacked box means fade is open","Celebrate stops and scores equally"], variations: "Move to 1-yard line. Add 2-point conversion. Only 3 plays for urgency." },
+    { id: 342, name: "Blitz Pickup & Hot Route", duration: 12, category: "tactical", ages: ["U10","U12","U14"], skills: ["Blitz Recognition","Communication","Pass Protection"], desc: "Offense identifies blitzes pre-snap and adjusts protection and routes", intensity: "medium", players: "8+", equipment: ["Balls","Cones"], instructions: "4-man front, 3 LBs. Phase 1: identify 4 blitz looks. Phase 2: execute at 75% with hot route conversion. Phase 3: random — offense reads and reacts in real time.", coaching: ["QB: count box defenders, identify who's blitzing","Center is the QB of the OL","RB: if free, check-release to flat","Hot route WR: shorten route when you see blitz"], variations: "No-huddle with 10-second clock. Max-protect scheme practice." },
+    { id: 343, name: "Football Relay Races", duration: 10, category: "game", ages: ["U6","U8","U10"], skills: ["Ball Security","Speed","Fun"], desc: "Relay race variations building football fundamentals", intensity: "high", players: "6+", equipment: ["Balls","Cones"], instructions: "Teams of 3-4. Race 1: Tuck & Run. Race 2: Obstacle zigzag. Race 3: Over-Under (set down/pick up). Race 4: QB Relay (throw back to next player). Best of 4 wins.", coaching: ["Ball security during sprints","Clean handoffs — hands ready","Encourage cheering","Shuffle players between races for balance"], variations: "Add crab-walk leg. Backward-run segment. Shorten to 10 yards for U6." },
+    { id: 344, name: "QB Challenge Course", duration: 10, category: "game", ages: ["U6","U8","U10","U12"], skills: ["Throwing Accuracy","Fun"], desc: "Target-throwing competition at different distances", intensity: "low", players: "2+", equipment: ["Balls","Cones"], instructions: "5 target stations at 5/10/15/20/25 yards (adjust for age). Targets: hoops, cans, cones on buckets. 2 throws per station. Hit = 2 pts, close = 1 pt, both hits = bonus. Crown QB of the Day.", coaching: ["Feet pointed at target","Follow through — reach for the target","Step with opposite foot","Celebrate improvement on round 2"], variations: "Moving target. Trick shot station (one knee, off hand). Team score competition." },
+    { id: 345, name: "Victory Lap & Breathing Reset", duration: 8, category: "cooldown", ages: ["U6","U8","U10","U12","U14"], skills: ["Recovery","Flexibility"], desc: "Gentle cool-down jog, guided stretching, and breathing", intensity: "low", players: "2+", equipment: ["Cones"], instructions: "Phase 1: slow team jog around field with shout-outs. Phase 2: static stretch circle — each player leads one stretch, 20 seconds. Phase 3: lying on backs, box breathing 4 cycles.", coaching: ["Hold stretches, don't bounce","Different player leads each practice","Keep mood light and positive","For young players: big breath in, slow breath out"], variations: "Statue game for U6-U8 instead of breathing. Foam rolling for older groups." },
+    { id: 346, name: "Iron Man Tournament", duration: 15, category: "game", ages: ["U10","U12","U14"], skills: ["All-Around Skills","Competition"], desc: "Multi-round tournament rotating through QB, WR, RB, and DB skills", intensity: "high", players: "4+", equipment: ["Balls","Cones"], instructions: "Head-to-head bracket. Round 1: QB accuracy (5 throws at target). Round 2: 1v1 routes (3 as WR, 3 as DB). Round 3: Gauntlet run through cones with strip attempts. Round 4: Shuttle run endurance. Tally wins for Iron Man champion.", coaching: ["Compete hard but congratulate opponent","Praise versatility over one-skill dominance","Keep rounds moving quickly","Adjust difficulty by age"], variations: "Add punt distance round. Team version combining scores. End-of-season bracket event." },
   ],
 };
 
@@ -476,14 +514,10 @@ function normalizeDrill(d) {
   return { ...d, ages: numericAges, phase, focus, equipment: equip, players, coaching: d.coaching || [] };
 }
 
-function generatePlan(config, sport = "Soccer") {
+function generatePlan(config, sport = "Soccer", recentDrillIds = []) {
   const { ageGroup, playerCount, duration, focusAreas, equipment } = config;
   const ages = AGE_GROUPS.find(a => a.value === ageGroup)?.ages || [];
-
-  // Get the drill pool for this sport, normalized
-  const rawDrills = sport === "Soccer"
-    ? soccerDrillsFull
-    : (drillsBySport[sport] || []);
+  const rawDrills = sport === "Soccer" ? soccerDrillsFull : (drillsBySport[sport] || []);
   const allDrills = rawDrills.map(normalizeDrill);
 
   const available = allDrills.filter(d =>
@@ -492,25 +526,65 @@ function generatePlan(config, sport = "Soccer") {
     (Array.isArray(d.players) ? d.players[0] <= playerCount : true)
   );
 
+  const isVeryYoung = ageGroup === "U6";
+  const isYoung = ["U6", "U8"].includes(ageGroup);
+  const isOlder = ["U14"].includes(ageGroup);
+  const phaseIntensity = { warmup: "low", technical: "medium", tactical: "medium", game: "high", cooldown: "low" };
+  const intensityOrder = { low: 0, medium: 1, high: 2 };
+  const coveredFocuses = new Set();
   const usedIds = new Set();
-  const pick = (phase, preferred) => {
-    let pool = available.filter(d => d.phase === phase && !usedIds.has(d.id));
-    if (pool.length === 0) pool = available.filter(d => !usedIds.has(d.id)); // fallback: any unused drill
-    if (pool.length === 0) pool = available.filter(d => d.phase === phase); // last resort: allow repeats
-    if (preferred.length > 0) {
-      const scored = pool.map(d => ({
-        ...d, score: d.focus.filter(f => preferred.includes(f)).length,
-      }));
-      scored.sort((a, b) => b.score - a.score);
-      pool = scored;
+
+  const scoreDrill = (drill, phase, preferredFocuses) => {
+    let score = 0;
+    const drillFocuses = drill.focus || [];
+    if (preferredFocuses.length > 0) {
+      for (const f of drillFocuses) {
+        if (preferredFocuses.includes(f)) {
+          score += 10;
+          if (!coveredFocuses.has(f)) score += 15;
+        }
+      }
     }
-    const top = pool.slice(0, Math.max(3, pool.length));
-    const selected = top[Math.floor(Math.random() * top.length)] || pool[0];
-    if (selected) usedIds.add(selected.id);
-    return selected;
+    const expected = phaseIntensity[phase] || "medium";
+    const drillInt = (drill.intensity || "medium").toLowerCase();
+    const diff = Math.abs((intensityOrder[drillInt] ?? 1) - (intensityOrder[expected] ?? 1));
+    score += Math.max(0, 10 - diff * 5);
+    if (recentDrillIds.includes(drill.id)) score -= 20;
+    if (isYoung && drillFocuses.includes("fun")) score += 12;
+    if (isOlder && (drillFocuses.includes("tactical") || drillFocuses.includes("decision making"))) score += 8;
+    if (usedIds.has(drill.id)) score -= 40;
+    return score;
   };
 
-  const isYoung = ["U6", "U8"].includes(ageGroup);
+  const pick = (phase, preferredFocuses) => {
+    let pool = available.filter(d => d.phase === phase && !usedIds.has(d.id));
+    if (pool.length === 0) pool = available.filter(d => !usedIds.has(d.id));
+    if (pool.length === 0) pool = available.filter(d => d.phase === phase);
+    if (pool.length === 0) return null;
+    const scored = pool.map(d => ({ ...d, _score: scoreDrill(d, phase, preferredFocuses) }));
+    scored.sort((a, b) => b._score - a._score);
+    const topN = Math.min(3, scored.length);
+    const top = scored.slice(0, topN);
+    const minScore = Math.min(...top.map(d => d._score));
+    const weights = top.map(d => Math.max(1, d._score - minScore + 1));
+    const totalWeight = weights.reduce((s, w) => s + w, 0);
+    let rand = Math.random() * totalWeight;
+    let selected = top[0];
+    for (let i = 0; i < top.length; i++) {
+      rand -= weights[i];
+      if (rand <= 0) { selected = top[i]; break; }
+    }
+    if (selected) {
+      usedIds.add(selected.id);
+      for (const f of (selected.focus || [])) {
+        if (preferredFocuses.includes(f)) coveredFocuses.add(f);
+      }
+      const { _score, ...clean } = selected;
+      return clean;
+    }
+    return null;
+  };
+
   let phases;
   if (duration <= 50) phases = { warmup: 8, technical: 12, tactical: 10, game: 12, cooldown: 5 };
   else if (duration <= 65) phases = { warmup: 8, technical: 15, tactical: 12, game: 15, cooldown: 5 };
@@ -519,13 +593,40 @@ function generatePlan(config, sport = "Soccer") {
 
   if (isYoung) { phases.tactical = Math.max(8, phases.tactical - 5); phases.game += 5; }
 
-  return [
-    { ...pick("warmup", focusAreas), phaseDuration: phases.warmup, phaseLabel: "Warm-Up" },
-    { ...pick("technical", focusAreas), phaseDuration: phases.technical, phaseLabel: "Technical" },
-    { ...pick("tactical", focusAreas), phaseDuration: phases.tactical, phaseLabel: "Tactical" },
-    { ...pick("game", focusAreas), phaseDuration: phases.game, phaseLabel: "Game" },
-    { ...pick("cooldown", []), phaseDuration: phases.cooldown, phaseLabel: "Cool-Down" },
-  ].filter(Boolean);
+  const skipTactical = isVeryYoung;
+  if (skipTactical) { phases.game += phases.tactical; phases.tactical = 0; }
+
+  const drillCounts = {
+    warmup: 1, technical: 1,
+    tactical: skipTactical ? 0 : 1,
+    game: skipTactical ? 2 : 1,
+    cooldown: 1,
+  };
+  if (duration >= 75) drillCounts.technical = 2;
+  if (duration >= 90 && !skipTactical) drillCounts.tactical = 2;
+
+  const plan = [];
+  const phaseOrder = ["warmup", "technical", "tactical", "game", "cooldown"];
+  const phaseLabels = { warmup: "Warm-Up", technical: "Technical", tactical: "Tactical", game: "Game", cooldown: "Cool-Down" };
+
+  for (const phase of phaseOrder) {
+    const count = drillCounts[phase];
+    if (count === 0 || phases[phase] === 0) continue;
+    const totalTime = phases[phase];
+    const drills = [];
+    for (let i = 0; i < count; i++) {
+      const preferred = phase === "cooldown" ? [] : focusAreas;
+      const drill = pick(phase, preferred);
+      if (drill) drills.push(drill);
+    }
+    if (drills.length === 0) continue;
+    const perDrill = Math.floor(totalTime / drills.length);
+    const remainder = totalTime - perDrill * drills.length;
+    drills.forEach((drill, idx) => {
+      plan.push({ ...drill, phaseDuration: perDrill + (idx === 0 ? remainder : 0), phaseLabel: phaseLabels[phase] });
+    });
+  }
+  return plan.filter(Boolean);
 }
 
 // Get normalized drills for any sport (used by drill swap)
@@ -553,32 +654,155 @@ const categoryColors = {
   fitness: { bg: "#fce7f3", color: "#be185d" },
 };
 
-function MiniField({ seed, sport }) {
+// ── Drill Diagram Component (replaces old MiniField) ──────────────────
+function _ddRng(id) {
+  let h = 0; const s = String(id);
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  let st = Math.abs(h) || 1;
+  return () => { st = (st * 1664525 + 1013904223) & 0x7fffffff; return st / 0x7fffffff; };
+}
+function _ddCount(players) {
+  if (Array.isArray(players)) return Math.min(players[0] || 4, 10);
+  if (typeof players === "string") { const n = parseInt(players, 10); return Math.min(isNaN(n) ? 4 : n, 10); }
+  return 4;
+}
+function _ddHas(arr, kw) { return (arr || []).some(s => s.toLowerCase().includes(kw.toLowerCase())); }
+const _dd = { tA: "#3b82f6", tB: "#f43f5e", cone: "#f97316", ball: "#fbbf24", goal: "rgba(255,255,255,0.8)", arr: "rgba(255,255,255,0.5)", ln: "rgba(255,255,255,0.4)" };
+function _Dot({ x, y, team = "A" }) { return <circle cx={x} cy={y} r={3.5} fill={team === "A" ? _dd.tA : _dd.tB} stroke="white" strokeWidth="0.8" />; }
+function _Cone({ x, y }) { return <polygon points={`${x},${y-2.5} ${x-2},${y+1.5} ${x+2},${y+1.5}`} fill={_dd.cone} stroke="white" strokeWidth="0.4" opacity="0.9" />; }
+function _Goal({ x, y, facing = "up" }) { return <rect x={x-5} y={facing==="up"?y-5:y} width={10} height={5} rx="1" fill="none" stroke={_dd.goal} strokeWidth="1" />; }
+function _Ball({ x, y }) { return <circle cx={x} cy={y} r={2} fill={_dd.ball} stroke="white" strokeWidth="0.5" />; }
+function _Arrow({ x1, y1, x2, y2 }) {
+  const dx = x2-x1, dy = y2-y1, len = Math.sqrt(dx*dx+dy*dy);
+  if (len < 1) return null;
+  const ux = dx/len, uy = dy/len, ax = x2-ux*2.5, ay = y2-uy*2.5, px = -uy*1.5, py = ux*1.5;
+  return <g><line x1={x1} y1={y1} x2={x2} y2={y2} stroke={_dd.arr} strokeWidth="0.8" strokeDasharray="2 1" /><polygon points={`${x2},${y2} ${ax+px},${ay+py} ${ax-px},${ay-py}`} fill={_dd.arr} /></g>;
+}
+function _CArrow({ x1, y1, x2, y2, bend = 8 }) {
+  const mx = (x1+x2)/2, my = (y1+y2)/2, dx = x2-x1, dy = y2-y1, len = Math.sqrt(dx*dx+dy*dy);
+  if (len < 1) return null;
+  const nx = -dy/len, ny = dx/len, cx2 = mx+nx*bend, cy2 = my+ny*bend;
+  const ul = Math.sqrt((x2-cx2)**2+(y2-cy2)**2), ux = (x2-cx2)/ul, uy = (y2-cy2)/ul;
+  const ax = x2-ux*2.5, ay = y2-uy*2.5, px = -uy*1.5, py = ux*1.5;
+  return <g><path d={`M ${x1} ${y1} Q ${cx2} ${cy2} ${x2} ${y2}`} fill="none" stroke={_dd.arr} strokeWidth="0.8" strokeDasharray="2 1" /><polygon points={`${x2},${y2} ${ax+px},${ay+py} ${ax-px},${ay-py}`} fill={_dd.arr} /></g>;
+}
+
+function _ddLayout(drill, rng) {
+  const catMap = { fitness: "warmup", game: "game", cooldown: "cooldown", scrimmage: "game" };
+  const rawPhase = drill.phase || catMap[drill.category] || drill.category || "technical";
+  const phase = rawPhase;
+  const rawFocus = drill.focus || (drill.skills || []).map(s => s.toLowerCase());
+  const focus = rawFocus;
+  const eq = drill.equipment || [];
+  const players = drill.players;
+  const n = _ddCount(players);
+  const f = focus, e = eq;
+  if (phase === "cooldown") {
+    const nn = Math.min(n, 8), r = 25, ps = [];
+    for (let i = 0; i < nn; i++) { const a = (Math.PI*2*i)/nn - Math.PI/2; ps.push({ x: 70+Math.cos(a)*r, y: 45+Math.sin(a)*r, t: "A" }); }
+    return { ps, cn: [], gl: [], ar: [], bl: [{ x: 70, y: 45 }], zz: null };
+  }
+  if (phase === "game") {
+    const ps = [], half = Math.floor(Math.min(n,10)/2);
+    for (let i = 0; i < half; i++) ps.push({ x: 15+rng()*50, y: 15+rng()*60, t: "A" });
+    for (let i = 0; i < Math.min(n,10)-half; i++) ps.push({ x: 75+rng()*50, y: 15+rng()*60, t: "B" });
+    return { ps, cn: [], gl: [{ x: 8, y: 38, side: true }, { x: 132, y: 38, side: true }], ar: [], bl: [{ x: 70, y: 45 }], zz: null };
+  }
+  if (phase === "warmup") {
+    if (_ddHas(f,"agility") && !_ddHas(f,"passing")) {
+      const ps = [], cn = [];
+      for (let i = 0; i < Math.min(n,5); i++) ps.push({ x: 15+i*12, y: 70, t: "A" });
+      for (let i = 0; i < 5; i++) cn.push({ x: 30+(i%2===0?8:-8), y: 15+i*11 });
+      return { ps, cn, gl: [], ar: [], bl: [], zz: { x: 30, y: 15, seg: 5, w: 8, h: 55 } };
+    }
+    if (_ddHas(f,"passing") || _ddHas(f,"possession")) {
+      const nn = Math.min(n,6), ps = [], ar = [];
+      for (let i = 0; i < nn; i++) { const a = (Math.PI*2*i)/nn - Math.PI/2; ps.push({ x: 70+Math.cos(a)*28, y: 45+Math.sin(a)*28, t: "A" }); }
+      if (nn >= 4) { ar.push({ x1: ps[0].x, y1: ps[0].y, x2: ps[2].x, y2: ps[2].y, c: true }); ar.push({ x1: ps[1].x, y1: ps[1].y, x2: ps[3].x, y2: ps[3].y, c: true }); }
+      return { ps, cn: [], gl: [], ar, bl: [{ x: 70, y: 45 }], zz: null };
+    }
+    const ps = [];
+    for (let i = 0; i < Math.min(n,6); i++) ps.push({ x: 30+rng()*80, y: 20+rng()*50, t: "A" });
+    return { ps, cn: [{ x: 20, y: 15 },{ x: 120, y: 15 },{ x: 20, y: 75 },{ x: 120, y: 75 }], gl: [], ar: [], bl: [{ x: ps[0]?.x+3||50, y: ps[0]?.y||40 }], zz: null };
+  }
+  if (phase === "technical") {
+    if (_ddHas(f,"goalkeeping")) {
+      const ps = [{ x: 70, y: 12, t: "A" },{ x: 40, y: 55, t: "B" },{ x: 70, y: 65, t: "B" },{ x: 100, y: 55, t: "B" }];
+      const ar = [{ x1: 40, y1: 55, x2: 70, y2: 15, c: true },{ x1: 70, y1: 65, x2: 70, y2: 15, c: true },{ x1: 100, y1: 55, x2: 70, y2: 15, c: true }];
+      return { ps, cn: [], gl: [{ x: 70, y: 6 }], ar, bl: [{ x: 70, y: 60 }], zz: null };
+    }
+    if (_ddHas(f,"shooting")) {
+      const ps = []; for (let i = 0; i < Math.min(n,5); i++) ps.push({ x: 25+i*10, y: 65, t: "A" });
+      return { ps, cn: [], gl: [{ x: 70, y: 8 }], ar: [{ x1: 60, y1: 62, x2: 70, y2: 18, c: true }], bl: [{ x: 62, y: 60 }], zz: null };
+    }
+    if (_ddHas(f,"dribbling") || _ddHas(f,"first touch") || _ddHas(f,"agility")) {
+      const cn = []; for (let i = 0; i < 6; i++) cn.push({ x: 35+i*15, y: 45 });
+      return { ps: [{ x: 20, y: 45, t: "A" }], cn, gl: [], ar: [], bl: [{ x: 23, y: 43 }], zz: null, weave: cn };
+    }
+    if (_ddHas(f,"passing")) {
+      const ps = [], ar = [], pairs = Math.min(Math.floor(n/2), 3);
+      for (let i = 0; i < pairs; i++) { const y = 22+i*22; ps.push({ x: 35, y, t: "A" },{ x: 105, y, t: "A" }); ar.push({ x1: 39, y1: y, x2: 101, y2: y }); }
+      return { ps, cn: [], gl: [], ar, bl: [{ x: 70, y: 22 }], zz: null };
+    }
+    const ps = [], ar = [], pairs = Math.min(Math.floor(n/2), 3);
+    for (let i = 0; i < pairs; i++) { const y = 22+i*22; ps.push({ x: 35, y, t: "A" },{ x: 105, y, t: "A" }); ar.push({ x1: 39, y1: y, x2: 101, y2: y }); }
+    return { ps, cn: [], gl: [], ar, bl: [{ x: 70, y: 22 }], zz: null };
+  }
+  if (phase === "tactical") {
+    if (_ddHas(f,"possession")) {
+      const nn = Math.min(n,6), ps = [], ar = [];
+      for (let i = 0; i < nn; i++) { const a = (Math.PI*2*i)/nn - Math.PI/2; ps.push({ x: 70+Math.cos(a)*26, y: 45+Math.sin(a)*26, t: "A" }); }
+      ps.push({ x: 73, y: 42, t: "B" }); if (n >= 6) ps.push({ x: 66, y: 49, t: "B" });
+      if (nn >= 3) { ar.push({ x1: ps[0].x, y1: ps[0].y, x2: ps[1].x, y2: ps[1].y }); ar.push({ x1: ps[1].x, y1: ps[1].y, x2: ps[2].x, y2: ps[2].y }); }
+      return { ps, cn: [{ x: 44, y: 19 },{ x: 96, y: 19 },{ x: 44, y: 71 },{ x: 96, y: 71 }], gl: [], ar, bl: [{ x: (ps[0]?.x||70)+3, y: ps[0]?.y||45 }], zz: null };
+    }
+    if (_ddHas(f,"defending")) {
+      const ps = [], ar = [], nn = Math.min(Math.floor(n/2), 4);
+      for (let i = 0; i < nn; i++) { const x = 30+i*25; ps.push({ x, y: 30, t: "A" },{ x, y: 60, t: "B" }); ar.push({ x1: x, y1: 57, x2: x, y2: 33 }); }
+      return { ps, cn: [], gl: [], ar, bl: [{ x: 30, y: 28 }], zz: null };
+    }
+    if (_ddHas(f,"transition")) {
+      const ps = [], half = Math.floor(Math.min(n,8)/2);
+      for (let i = 0; i < half; i++) ps.push({ x: 30+rng()*30, y: 30+rng()*30, t: "A" });
+      for (let i = 0; i < Math.min(n,8)-half; i++) ps.push({ x: 80+rng()*30, y: 30+rng()*30, t: "B" });
+      return { ps, cn: [], gl: [{ x: 8, y: 38, side: true },{ x: 132, y: 38, side: true }], ar: [{ x1: 50, y1: 45, x2: 15, y2: 45, c: true },{ x1: 90, y1: 45, x2: 125, y2: 45, c: true }], bl: [{ x: 70, y: 45 }], zz: null };
+    }
+    // attacking / 1v1 / default tactical
+    const ps = [{ x: 40, y: 50, t: "A" },{ x: 70, y: 60, t: "A" },{ x: 100, y: 50, t: "A" },{ x: 55, y: 35, t: "B" },{ x: 85, y: 35, t: "B" },{ x: 70, y: 12, t: "B" }];
+    return { ps, cn: [], gl: [{ x: 70, y: 6 }], ar: [{ x1: 70, y1: 57, x2: 70, y2: 18 },{ x1: 42, y1: 48, x2: 65, y2: 20, c: true },{ x1: 98, y1: 48, x2: 75, y2: 20, c: true }], bl: [{ x: 70, y: 55 }], zz: null };
+  }
+  // fallback
+  const ps = []; for (let i = 0; i < Math.min(n,6); i++) ps.push({ x: 30+rng()*80, y: 20+rng()*50, t: "A" });
+  return { ps, cn: [{ x: 20, y: 15 },{ x: 120, y: 15 },{ x: 20, y: 75 },{ x: 120, y: 75 }], gl: [], ar: [], bl: [], zz: null };
+}
+
+function DrillDiagram({ drill, sport }) {
   const fieldColor = sportConfig[sport]?.fieldColor || c.green600;
-  const isBasketball = sport === "Basketball";
-  const isBaseball = sport === "Baseball";
-  const dots = Array.from({ length: 6 }, (_, i) => ({
-    cx: 20 + (((typeof seed === 'string' ? seed.charCodeAt(0) * 37 : seed * 37) + i * 53) % 100),
-    cy: 15 + (((typeof seed === 'string' ? seed.charCodeAt(0) * 23 : seed * 23) + i * 41) % 60),
-    team: i < 3 ? (isBasketball ? "#1d4ed8" : c.green600) : c.rose500,
-  }));
+  const rng = _ddRng(drill?.id || "default");
+  const lay = _ddLayout(drill || {}, rng);
+  const isB = sport === "Basketball", isBB = sport === "Baseball", isFB = sport === "Football";
   return (
     <svg viewBox="0 0 140 90" style={{ width: "100%", height: 100, borderRadius: 12, background: fieldColor }}>
-      {isBasketball ? (<>
-        <rect x="2" y="2" width="136" height="86" rx="4" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" />
-        <line x1="70" y1="2" x2="70" y2="88" stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
-        <circle cx="70" cy="45" r="14" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
-      </>) : isBaseball ? (<>
-        <polygon points="70,75 30,40 70,5 110,40" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" />
-        <circle cx="70" cy="45" r="10" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-      </>) : (<>
-        <rect x="2" y="2" width="136" height="86" rx="4" fill="none" stroke="white" strokeWidth="1.5" strokeDasharray="4 2" />
-        <line x1="70" y1="2" x2="70" y2="88" stroke="white" strokeWidth="1" strokeDasharray="4 2" />
-        <circle cx="70" cy="45" r="14" fill="none" stroke="white" strokeWidth="1" strokeDasharray="4 2" />
-      </>)}
-      {dots.map((d, i) => <circle key={i} cx={d.cx} cy={d.cy} r="5" fill={d.team} stroke="white" strokeWidth="1.5" />)}
+      {isB ? (<><rect x="2" y="2" width="136" height="86" rx="4" fill="none" stroke={_dd.ln} strokeWidth="1.5" /><line x1="70" y1="2" x2="70" y2="88" stroke={_dd.ln} strokeWidth="1" /><circle cx="70" cy="45" r="14" fill="none" stroke={_dd.ln} strokeWidth="1" /></>)
+      : isBB ? (<><polygon points="70,75 30,40 70,5 110,40" fill="none" stroke={_dd.ln} strokeWidth="1.5" /><circle cx="70" cy="45" r="10" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" /></>)
+      : isFB ? (<><rect x="2" y="2" width="136" height="86" rx="4" fill="none" stroke="white" strokeWidth="1.5" />{[28,47,70,93,112].map(x => <line key={x} x1={x} y1="2" x2={x} y2="88" stroke="rgba(255,255,255,0.25)" strokeWidth="0.7" />)}</>)
+      : (<><rect x="2" y="2" width="136" height="86" rx="4" fill="none" stroke="white" strokeWidth="1.5" strokeDasharray="4 2" /><line x1="70" y1="2" x2="70" y2="88" stroke="white" strokeWidth="1" strokeDasharray="4 2" /><circle cx="70" cy="45" r="14" fill="none" stroke="white" strokeWidth="1" strokeDasharray="4 2" /></>)}
+      {lay.gl.map((g, i) => g.side ? <rect key={`g${i}`} x={g.x-3} y={g.y} width={6} height={14} rx="1" fill="none" stroke={_dd.goal} strokeWidth="1" /> : <_Goal key={`g${i}`} x={g.x} y={g.y} />)}
+      {lay.zz && <path d={(() => { let d = `M ${lay.zz.x} ${lay.zz.y}`; for (let i = 0; i < lay.zz.seg; i++) d += ` L ${lay.zz.x + (i%2===0?lay.zz.w:-lay.zz.w)} ${lay.zz.y + (lay.zz.h/lay.zz.seg)*(i+1)}`; return d; })()} fill="none" stroke={_dd.arr} strokeWidth="0.8" strokeDasharray="2 1" />}
+      {lay.weave && <path d={(() => { const pts = [...lay.weave].sort((a,b)=>a.x-b.x); if (pts.length < 2) return ""; let d = `M ${pts[0].x-8} ${pts[0].y}`; pts.forEach((p,i) => { d += ` Q ${p.x} ${p.y+(i%2===0?-8:8)} ${p.x+7} ${p.y}`; }); return d; })()} fill="none" stroke={_dd.arr} strokeWidth="0.8" strokeDasharray="2 1" />}
+      {lay.ar.map((a, i) => a.c ? <_CArrow key={`a${i}`} x1={a.x1} y1={a.y1} x2={a.x2} y2={a.y2} /> : <_Arrow key={`a${i}`} x1={a.x1} y1={a.y1} x2={a.x2} y2={a.y2} />)}
+      {lay.cn.map((cc, i) => <_Cone key={`c${i}`} x={cc.x} y={cc.y} />)}
+      {lay.ps.map((p, i) => <_Dot key={`p${i}`} x={p.x} y={p.y} team={p.t} />)}
+      {lay.bl.map((b, i) => <_Ball key={`b${i}`} x={b.x} y={b.y} />)}
     </svg>
   );
+}
+
+// Keep backward-compatible alias
+function MiniField({ seed, sport }) {
+  // Legacy fallback: create a minimal drill object from the seed
+  const fakeDrill = { id: seed, phase: "game", focus: [], equipment: [], players: [6, 22] };
+  return <DrillDiagram drill={fakeDrill} sport={sport} />;
 }
 
 function PageHero({ title, subtitle, actions, gradient }) {
@@ -1353,7 +1577,7 @@ function DrillsPage({ sport, setPage, setSelectedDrill }) {
             const isFavorite = favorites.includes(drill.id);
             return (
               <HoverCard key={drill.id}>
-                <div style={{ padding: 14, cursor: "pointer" }} onClick={() => { setSelectedDrill(drill); setPage("drill-detail"); }} {...clickableProps(() => { setSelectedDrill(drill); setPage("drill-detail"); })}><MiniField seed={drill.id} sport={sport} /></div>
+                <div style={{ padding: 14, cursor: "pointer" }} onClick={() => { setSelectedDrill(drill); setPage("drill-detail"); }} {...clickableProps(() => { setSelectedDrill(drill); setPage("drill-detail"); })}><DrillDiagram drill={drill} sport={sport} /></div>
                 <div style={{ padding: "4px 18px 18px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                     <h3 style={{ fontSize: 15, fontWeight: 700, color: c.slate800, cursor: "pointer", flex: 1 }} onClick={() => { setSelectedDrill(drill); setPage("drill-detail"); }} {...clickableProps(() => { setSelectedDrill(drill); setPage("drill-detail"); })}>{drill.name}</h3>
