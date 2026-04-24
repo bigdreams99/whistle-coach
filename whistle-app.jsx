@@ -2,9 +2,12 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import {
   Home, ClipboardList, Zap, Users, Clock, Star, ChevronDown, ChevronLeft,
   Plus, Search, Heart, ArrowRight, Calendar, Timer, Target, Trophy,
-  TrendingUp, Filter, MoreHorizontal, CheckCircle2, Circle, Sparkles,
+  Filter, CheckCircle2, Circle, Sparkles,
   UserPlus, Trash2, BarChart3, Activity, Award, Play, RotateCcw, ChevronRight, Info,
-  Download, Printer, Share2, Menu, X,
+  Download, Printer, Menu, X,
+  Pause, Square, Maximize2, Minimize2, SkipForward, Volume2, VolumeX,
+  Wifi, WifiOff, Smartphone, Copy,
+  GripVertical, CalendarDays, Repeat,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -30,6 +33,78 @@ function useIsMobile() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// PWA & OFFLINE HOOKS
+// ═══════════════════════════════════════════════════════════════════════════
+function useOnlineStatus() {
+  const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
+  useEffect(() => {
+    const goOnline = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => { window.removeEventListener("online", goOnline); window.removeEventListener("offline", goOffline); };
+  }, []);
+  return isOnline;
+}
+
+function useInstallPrompt() {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  useEffect(() => {
+    if (window.matchMedia("(display-mode: standalone)").matches) { setIsInstalled(true); return; }
+    const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); };
+    window.addEventListener("beforeinstallprompt", handler);
+    window.addEventListener("appinstalled", () => { setIsInstalled(true); setDeferredPrompt(null); });
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+  const promptInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const result = await deferredPrompt.userChoice;
+    if (result.outcome === "accepted") setIsInstalled(true);
+    setDeferredPrompt(null);
+  };
+  return { deferredPrompt, isInstalled, promptInstall };
+}
+
+function OfflineIndicator({ isOnline }) {
+  if (isOnline) return null;
+  return (
+    <div style={{
+      position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
+      background: `linear-gradient(135deg, ${c.amber500}, ${c.amber600})`, color: c.white,
+      padding: "8px 16px", textAlign: "center", fontSize: 13, fontWeight: 600,
+      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+    }}>
+      <WifiOff size={14} /> You're offline — cached data is available
+    </div>
+  );
+}
+
+function InstallBanner({ deferredPrompt, promptInstall, onDismiss }) {
+  if (!deferredPrompt) return null;
+  return (
+    <div style={{
+      position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)", zIndex: 9998,
+      background: c.white, borderRadius: 16, padding: "16px 24px",
+      boxShadow: "0 8px 32px rgba(0,0,0,0.15)", border: `1px solid ${c.slate200}`,
+      display: "flex", alignItems: "center", gap: 16, maxWidth: 440, width: "calc(100% - 32px)",
+    }}>
+      <div style={{ width: 40, height: 40, borderRadius: 10, background: `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <Smartphone size={20} color={c.white} />
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: c.slate800 }}>Install Whistle</div>
+        <div style={{ fontSize: 12, color: c.slate500 }}>Use offline on the field</div>
+      </div>
+      <button onClick={promptInstall} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`, color: c.white, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Install</button>
+      <button onClick={onDismiss} style={{ padding: "4px", border: "none", background: "transparent", cursor: "pointer", color: c.slate400 }}><X size={16} /></button>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // COLOR TOKENS
 // ═══════════════════════════════════════════════════════════════════════════
 const c = {
@@ -46,6 +121,14 @@ const c = {
   rose500: "#f43f5e",
   orange500: "#f97316",
   cyan500: "#06b6d4",
+  amber600: "#d97706",
+  blue100: "#dbeafe", blue700: "#1d4ed8",
+  amber100: "#fef3c7", amber700: "#b45309",
+  green100b: "#d1fae5",
+  pink100: "#fce7f3", pink700: "#be185d",
+  blue50: "#eff6ff",
+  indigo500: "#6366f1",
+  purple400: "#a855f7",
 };
 
 // Phase colors for plan generation
@@ -91,12 +174,12 @@ function useLocalStorage(key, initialValue) {
 const sportConfig = {
   Soccer: {
     emoji: "\u26bd", tip: "Effective practices balance repetition with game-like situations. Keep passing drills dynamic with movement off the ball.",
-    fieldColor: "#22c55e", heroGradient: `linear-gradient(135deg, #166534 0%, #15803d 50%, #047857 100%)`,
+    fieldColor: c.green500, heroGradient: `linear-gradient(135deg, ${c.green800} 0%, ${c.green700} 50%, ${c.emerald600} 100%)`,
     positions: ["GK","CB","LB","RB","CDM","CM","CAM","LW","RW","ST"],
   },
   Basketball: {
     emoji: "\ud83c\udfc0", tip: "Focus on fundamentals \u2014 dribbling, footwork, and shooting form. Build competitive drills to keep energy high.",
-    fieldColor: "#c2855a", heroGradient: `linear-gradient(135deg, #7c2d12 0%, #c2855a 50%, #f59e0b 100%)`,
+    fieldColor: "#c2855a", heroGradient: `linear-gradient(135deg, #7c2d12 0%, #c2855a 50%, ${c.amber500} 100%)`,
     positions: ["PG","SG","SF","PF","C"],
   },
   Baseball: {
@@ -106,7 +189,7 @@ const sportConfig = {
   },
   Football: {
     emoji: "\ud83c\udfc8", tip: "Structure practice around position groups, then bring the team together for full-speed reps. Film review is key.",
-    fieldColor: "#16a34a", heroGradient: `linear-gradient(135deg, #1e3a5f 0%, #1e40af 50%, #3b82f6 100%)`,
+    fieldColor: c.green600, heroGradient: `linear-gradient(135deg, #1e3a5f 0%, #1e40af 50%, ${c.blue500} 100%)`,
     positions: ["QB","RB","WR","TE","OL","DL","LB","CB","S","K"],
   },
 };
@@ -289,7 +372,7 @@ const drillsBySport = {
     ...d,
     desc: d.description,
     ages: AGE_GROUPS.filter(ag => ag.ages.some(a => d.ages.includes(a))).map(ag => ag.value),
-    instructions: d.description + "\n\nCoaching Points:\n" + (d.coaching || []).map((cp, i) => `${i+1}. ${cp}`).join("\n"),
+    instructions: d.description,
     variations: d.focus.length > 1 ? `Progress by focusing on ${d.focus.join(" and ")}. Adjust grid size and player count as needed.` : null,
     skills: d.skills || d.focus.map(f => f.charAt(0).toUpperCase() + f.slice(1)),
     players: `${d.players[0]}-${d.players[1]}`,
@@ -342,6 +425,33 @@ const drillsBySport = {
     { id: 131, name: "King of the Court (1v1)", duration: 10, category: "game", ages: ["U8","U10","U12","U14"], skills: ["1v1","Offense","Defense"], desc: "Continuous 1v1: winner stays, loser rotates out", intensity: "high", players: "4+", equipment: ["Balls"], instructions: "One basket, 1v1.\n1. Check ball at the top of the key\n2. 3 dribbles max to score\n3. Winner stays on offense, gets a point\n4. Loser goes to end of the line\n5. First to 5 wins", coaching: ["Attack with purpose. Use fakes. Play defense — don't just stand there."], variations: "2-dribble limit. Must use a move before shooting. Make-it-take-it." },
     { id: 132, name: "Lightning (Knockout)", duration: 8, category: "game", ages: ["U6","U8","U10","U12","U14"], skills: ["Shooting","Pressure"], desc: "Fast-paced shooting game — make it before the player behind you", intensity: "medium", players: "5+", equipment: ["Balls"], instructions: "Players line up at the free throw line with 2 balls.\n1. First player shoots — if they miss, rebound and score before player 2\n2. If player 2 scores first, player 1 is out\n3. Last player standing wins", coaching: ["Make the first shot. If you miss, hustle for the rebound. Stay calm under pressure."], variations: "Start from 3-point line. Left-hand layup required." },
     { id: 133, name: "21 (Hustle Game)", duration: 10, category: "game", ages: ["U8","U10","U12","U14"], skills: ["Shooting","Rebounding","Hustle"], desc: "Classic playground game to 21 with free throws and tip-ins", intensity: "high", players: "3+", equipment: ["Balls"], instructions: "3+ players at one basket.\n1. Coach shoots — everyone fights for the rebound\n2. Score from the field = 2 points, free throw = 1\n3. After scoring, shoot free throws (make = 1 pt each, miss = ball is live)\n4. First to exactly 21 wins (go over = back to 15)", coaching: ["Box out. Hustle for every loose ball. Smart shot selection."], variations: "Must score on a tip-in. No 3-pointers." },
+    // ── WARMUP (NEW) ────────────────────────────────────────────────────
+    { id: 134, name: "Ball on the Move Warmup", duration: 6, category: "warmup", ages: ["U6","U8","U10","U12"], skills: ["dribbling","fun","conditioning"], desc: "Players dribble freely to music, following coach movement cues — stop, spin, change hands, freeze", intensity: "low", players: "4+", equipment: ["balls","cones"], instructions: "Each player has a ball.\n1. Dribble freely in the gym while music plays\n2. Coach calls commands: 'Freeze!' (stop dribble), 'Spin!' (spin move), 'Switch!' (change hands)\n3. Add movement: jog, skip, slide step while dribbling\n4. 2 minutes free, 2 minutes following the leader", coaching: ["Keep your head up — no staring at the ball.", "Respond instantly to commands to build reaction speed.", "Encourage creativity during free dribble time."], variations: "Coach leads as the ball — everyone mimics. No-look dribble round." },
+    { id: 135, name: "Partner Mirror Warmup", duration: 5, category: "warmup", ages: ["U8","U10","U12","U14"], skills: ["footwork","conditioning","fun"], desc: "Partners face each other and mirror lateral movements — builds footwork, reaction, and defensive stance habits", intensity: "medium", players: "2+", equipment: [], instructions: "Pairs face each other 3 feet apart.\n1. Leader moves laterally — partner mirrors\n2. Switch leader every 30 seconds\n3. Progress: add jab steps, drop steps, pump fakes\n4. Final round: add a ball — leader is the offensive player, partner must mirror on defense", coaching: ["Stay low in an athletic stance the whole time.", "Quick feet — don't cross your feet on the slides.", "Eyes on the partner's hips, not their feet."], variations: "3-on-3 mirror game for larger groups. Add a reaction command: 'Ball!' — both players sprint to a ball on the floor." },
+    { id: 136, name: "Four Corners Passing Warmup", duration: 7, category: "warmup", ages: ["U8","U10","U12","U14"], skills: ["passing","conditioning","teamwork"], desc: "Players rotate through four cones passing and moving — builds passing, communication, and light cardio before practice", intensity: "medium", players: "8+", equipment: ["balls","cones"], instructions: "Set 4 cones in a square, 10-12 feet apart. 2 players per cone, 1 ball.\n1. Pass to the adjacent cone and sprint to the back of that line\n2. After 90 seconds, reverse direction\n3. Add a second ball for advanced groups\n4. Introduce bounce passes, then overhead passes each round", coaching: ["Call the name of the person you're passing to.", "Sprint — don't jog — to the next cone.", "Non-ball players stay ready with hands up as targets."], variations: "Cross-pattern passing for longer passes. Add a ball fake before each pass." },
+    // ── TECHNICAL (NEW) ─────────────────────────────────────────────────
+    { id: 137, name: "One-Dribble Pull-Up", duration: 8, category: "technical", ages: ["U10","U12","U14"], skills: ["shooting","dribbling","footwork"], desc: "Players catch a pass, take exactly one dribble, and pull up for a mid-range jump shot — builds quick release and footwork", intensity: "medium", players: "2+", equipment: ["balls","cones"], instructions: "Shooter starts at the wing, passer at the elbow.\n1. Catch the pass, take one hard dribble toward the basket\n2. Gather, jump stop or 1-2 step, pull up for the shot\n3. Rebounder returns the ball to the passer\n4. 5 reps from each wing and the top of the key", coaching: ["Catch with feet ready — load before the dribble.", "Don't rush: one dribble means one deliberate, powerful dribble.", "Elbow in on the shot — same form every time."], variations: "Off-the-crossover pull-up. Defender closes out — player reads to shoot or drive." },
+    { id: 138, name: "Weak Hand Challenge", duration: 8, category: "technical", ages: ["U8","U10","U12","U14"], skills: ["dribbling","footwork","conditioning"], desc: "Entire drill sequence done with the non-dominant hand only — dribbling, layups, and passing", intensity: "medium", players: "1+", equipment: ["balls","cones"], instructions: "Every player uses their weak hand only.\n1. Stationary dribble: pound, crossover (switch hands for just a beat), figure-8 — 1 min\n2. Cone dribble course (weak hand only) — 2 reps\n3. Full-court dribble: weak hand there, both hands back\n4. Finish with 5 weak-hand layups", coaching: ["Don't cheat — dominant hand behind your back if needed.", "Low, controlled dribble: fingertip control matters more than speed.", "Celebrate improvement over perfection — this is hard."], variations: "Weak-hand passing with a partner. Weak-hand free throws." },
+    { id: 139, name: "Shot Fake + Drive", duration: 8, category: "technical", ages: ["U10","U12","U14"], skills: ["shooting","footwork","dribbling"], desc: "Teaches players to use a convincing shot fake to get the defender in the air, then attack off the dribble", intensity: "medium", players: "2+", equipment: ["balls","cones"], instructions: "Player catches at the wing with a live defender.\n1. Catch in triple-threat position\n2. Sell the shot fake: bring the ball up, knees dip, head rises\n3. If defender jumps — attack the dribble left or right\n4. Finish at the rim or pull up at the elbow\n5. 5 reps per player", coaching: ["The fake must look exactly like your real shot — sell it.", "Explode off the pivot foot immediately after the fake.", "Keep your eyes on the rim during the fake, not on the defender."], variations: "Shot fake + pass to cutter. Add two defenders: fake one, pass to the open player." },
+    { id: 140, name: "Bank Shot Circuit", duration: 7, category: "technical", ages: ["U8","U10","U12","U14"], skills: ["shooting","footwork","fun"], desc: "Players shoot from specific angles designed to use the backboard — builds accuracy and court awareness", intensity: "low", players: "1+", equipment: ["balls"], instructions: "Three spots: 45-degree angle on each side, and the block.\n1. 5 shots from each spot using the backboard\n2. Aim for the top corner of the square on the board\n3. Mix in off-the-dribble bank shots\n4. Track makes per spot", coaching: ["Use the square on the glass — it's there for a reason.", "Softer touch from closer angles.", "The 45-degree angle is the sweet spot for bank shots."], variations: "Bank shot contest: first to 10 makes wins. Add a pump fake before shooting." },
+    { id: 141, name: "Elbow Shooting", duration: 8, category: "technical", ages: ["U10","U12","U14"], skills: ["shooting","footwork","conditioning"], desc: "Players catch and shoot from the two elbow spots — the most important mid-range locations on the court", intensity: "medium", players: "2+", equipment: ["balls"], instructions: "Two players alternate. Rebounder passes to the elbow.\n1. Catch with feet set — square up\n2. Shot: balance, elbow under, hold follow-through\n3. Rebounder moves to the other elbow\n4. Go back and forth for 3 minutes each", coaching: ["Feet are set before the catch — not after.", "Hold your follow-through until the ball hits the net.", "Short backswing: this is a quick catch-and-shoot spot."], variations: "Off-the-dribble: drive from the top, pull up at the elbow. Add a time pressure: shoot in 3 seconds." },
+    { id: 142, name: "Passing Under Pressure", duration: 8, category: "technical", ages: ["U10","U12","U14"], skills: ["passing","teamwork","defense"], desc: "3v1 keep-away in a small grid — passer must make quick decisions against an active defender", intensity: "medium", players: "4+", equipment: ["balls","cones"], instructions: "3 offensive players form a triangle, 1 defender in the middle.\n1. Offense passes quickly — no holding the ball more than 2 seconds\n2. Defender tries to tip or intercept a pass\n3. If defender gets a touch, switch with the passer who threw it\n4. Count consecutive passes — beat the record each round", coaching: ["Move after you pass — don't stand still.", "Give the passer two targets, not one.", "Fake one way, pass the other."], variations: "3v2 for more challenge. Add a no-bounce-pass rule, then bounce-pass-only." },
+    // ── TACTICAL (NEW) ──────────────────────────────────────────────────
+    { id: 143, name: "Pick and Roll Live", duration: 12, category: "tactical", ages: ["U12","U14"], skills: ["teamwork","passing","shooting"], desc: "2v2 live pick-and-roll reads: ball handler reads the defense and chooses to attack, pull up, or pass to the roller", intensity: "high", players: "4+", equipment: ["balls","cones"], instructions: "Ball handler at the top, screener at the wing.\n1. Screener sets the ball screen\n2. Ball handler reads: if the defender goes under = pull up. Over = turn the corner. Hedge = pocket pass to roller.\n3. Play live until a score or stop\n4. Rotate: offense becomes defense", coaching: ["Screener: set wide, be a wall — roll hard to the basket.", "Ball handler: wait for the screen, then attack off it.", "Read the defense — make the right play, not the flashy one."], variations: "Add a third defender (help-side). Pick-and-pop: screener pops to the 3-point line instead of rolling." },
+    { id: 144, name: "Zone Offense Attack", duration: 12, category: "tactical", ages: ["U12","U14"], skills: ["teamwork","passing","shooting"], desc: "Teaches players how to attack a 2-3 zone: skip passes, high-low, and weak-side cuts", intensity: "medium", players: "8+", equipment: ["balls","cones"], instructions: "Defense plays a 2-3 zone.\n1. Offense learns zone principles: skip pass (ball side to weak side), high-low (top passes to elbow, elbow dumps to block), weak-side flash cut\n2. Walk through each principle, then run live\n3. Defense plays semi-live (no hard closing)", coaching: ["Move the zone — make it shift left, then hit the opposite side.", "The skip pass is the deadliest weapon vs. a 2-3.", "Find the gaps: the short corner and the high post are zone killers."], variations: "Full live 5v5 zone offense. Restrict to 4 passes before shooting to force decision-making." },
+    { id: 145, name: "Transition Offense Drill", duration: 10, category: "tactical", ages: ["U10","U12","U14"], skills: ["conditioning","teamwork","passing"], desc: "Continuous transition drill: defense rebounds, becomes offense, attacks the other end — builds conditioning and transition habits", intensity: "high", players: "6+", equipment: ["balls"], instructions: "3v3 on a full court.\n1. Offense attacks; defense tries to stop them\n2. After the play, the rebounding team (defense) immediately becomes the offense going the other way\n3. Old offense transitions to defense\n4. Play continuously for 3-4 minutes", coaching: ["Sprint in transition — every possession.", "Outlet the ball wide, not into traffic.", "Stop when defense is set — don't force a bad shot in transition."], variations: "4v3 disadvantage for defense to encourage attacking. Full 5v5 transition." },
+    { id: 146, name: "Help Defense Rotations", duration: 10, category: "tactical", ages: ["U10","U12","U14"], skills: ["defense","teamwork","footwork"], desc: "Teaches help-and-recover principles — players learn to provide help on dribble penetration and rotate back to their man", intensity: "medium", players: "6+", equipment: ["balls","cones"], instructions: "4 offense on the perimeter, 4 defense.\n1. Ball handler attacks the basket off the dribble\n2. Nearest help defender steps up to stop the ball\n3. Original ball defender and two others rotate to cover the vacated spots\n4. Offense reads and swings ball to open shooter", coaching: ["Help-side defender: one step toward the lane — always be ready to help.", "When you help, someone else must cover your man — communicate.", "Recover to your player after helping — sprint back."], variations: "5v5 live with coaching stoppages to highlight rotation errors. Tag-team drill: tap your partner to rotate in." },
+    // ── GAME/SCRIMMAGE (NEW) ────────────────────────────────────────────
+    { id: 147, name: "Speedball (Half-Court)", duration: 10, category: "game", ages: ["U8","U10","U12","U14"], skills: ["shooting","fun","conditioning"], desc: "Half-court game where the shot clock is 8 seconds — every possession must be played with urgency and quick decision-making", intensity: "high", players: "4+", equipment: ["balls","cones"], instructions: "3v3 or 4v4 half-court.\n1. Coach counts an 8-second shot clock out loud\n2. Must shoot before 8 seconds or it's a turnover\n3. Regular scoring, make-it-take-it\n4. Play to 7 points", coaching: ["Play faster — less thinking, more reacting.", "The first open shot is the right shot.", "Quick, accurate passes open up the shot clock."], variations: "6-second shot clock for advanced groups. Must pass 3 times before shooting." },
+    { id: 148, name: "Survivor Shooting", duration: 8, category: "game", ages: ["U10","U12","U14"], skills: ["shooting","fun","conditioning"], desc: "Teams shoot from assigned spots — miss and you're eliminated. Last team standing wins.", intensity: "medium", players: "6+", equipment: ["balls"], instructions: "Teams of 2-3 take a spot around the key.\n1. Each team shoots simultaneously — each player shoots once per round\n2. A team is eliminated when their last player misses two shots in a row\n3. Continue until one team remains\n4. Winners stay on court vs. new challengers", coaching: ["Slow down and focus under pressure — this is game-speed shooting.", "Encourage and support your teammate after a miss.", "Pick your spot: shoot from where you practice."], variations: "All players shoot from the free throw line only. Beat-the-clock version: make 3 before time runs out." },
+    { id: 149, name: "Defensive Stops Challenge", duration: 10, category: "game", ages: ["U10","U12","U14"], skills: ["defense","teamwork","conditioning"], desc: "Defense scores points for stops — turns the traditional scrimmage around and rewards defensive effort", intensity: "high", players: "6+", equipment: ["balls"], instructions: "3v3 half-court.\n1. Defense earns 2 points for a stop (forced miss, steal, or charge)\n2. Offense earns 1 point for a basket\n3. Switch offense/defense after every 4 possessions\n4. Team with the most points at the end wins", coaching: ["Talk on defense — communication is your best tool.", "A stop is worth more than a basket today — commit.", "Stay in front of your man: no reaching, stay low."], variations: "Add a bonus point for a charge taken. Offense-only scoring if defense is struggling." },
+    { id: 150, name: "3-Point Contest", duration: 8, category: "game", ages: ["U10","U12","U14"], skills: ["shooting","fun","conditioning"], desc: "Players race around 5 spots shooting 3-pointers — builds range, stamina, and competitive spirit", intensity: "medium", players: "2+", equipment: ["balls"], instructions: "5 spots beyond the arc (corners, wings, top). 2 balls at each spot.\n1. Each player shoots 2 from each spot — move continuously\n2. Score 1 for each make, bonus ball (money ball) at the last spot is worth 2\n3. Track total over 5 spots\n4. Play 3 rounds, highest total wins", coaching: ["Don't rush the shot — get your feet set even while moving.", "Keep your follow-through — fatigue kills form.", "Know your spots: shoot from where you're comfortable."], variations: "Elimination format: lowest score each round is out. Team version: combine individual scores." },
+    // ── COOLDOWN (NEW) ──────────────────────────────────────────────────
+    { id: 151, name: "Make-It or Run Cooldown", duration: 6, category: "cooldown", ages: ["U8","U10","U12","U14"], skills: ["shooting","fun","conditioning"], desc: "Players shoot 3 free throws — miss any and the group does a short fun activity. Ends practice with laughs and accountability", intensity: "low", players: "4+", equipment: ["balls"], instructions: "Players take turns shooting 3 free throws.\n1. Make all 3: no penalty — take a seat\n2. Miss any: choose a fun penalty (5 ball slaps, 5 jumping jacks, or spin around twice)\n3. After everyone has shot, team stretches together while seated\n4. Coach delivers two positives and one focus for next practice", coaching: ["Keep your routine the same as in game — breathe, bounce, shoot.", "Laugh at the penalties — this should be fun.", "Quiet the team before each player shoots: practice pressure."], variations: "Team version: if anyone misses, everyone does the penalty together. Reverse: miss = you choose someone else's penalty." },
+    { id: 152, name: "Circle Stretch & Share", duration: 5, category: "cooldown", ages: ["U6","U8","U10","U12","U14"], skills: ["fun","teamwork","conditioning"], desc: "Team sits in a circle, stretches together, and each player shares one thing they learned or did well — builds team culture and reflection", intensity: "low", players: "4+", equipment: [], instructions: "Team sits in a big circle on the court.\n1. Static stretch sequence led by a player: quads, hamstrings, groin, back, shoulders — 15-20 sec each\n2. Neck rolls and wrist circles for guards and bigs\n3. Go around the circle: each player says one thing they learned or did well today\n4. Coach closes with an affirmation and previews next practice", coaching: ["No pressure on responses — one word or one sentence is fine.", "Celebrate specific wins: 'Great box out, Marcus!'", "Stretch slowly — hold each pose, don't bounce."], variations: "Themed share: 'Best pass you threw today.' Add a team chant or huddle to close." },
+    // ── FITNESS (NEW) ───────────────────────────────────────────────────
+    { id: 153, name: "Suicide Sprint Challenge", duration: 8, category: "fitness", ages: ["U10","U12","U14"], skills: ["conditioning","footwork","fun"], desc: "Classic court sprints from baseline to free throw line, half court, far free throw line, and full court — with a competitive twist", intensity: "high", players: "4+", equipment: ["cones"], instructions: "Players start on the baseline.\n1. Sprint to the near free throw line and back\n2. Sprint to half court and back\n3. Sprint to far free throw line and back\n4. Sprint full court and back\n5. Rest 60 seconds — repeat 2-3 times\n6. Track times and try to beat your personal best", coaching: ["Touch the line with your hand — no shortcuts.", "Push your final sprint: the race is won at the end.", "Breathe out on the run, breathe in on the turn."], variations: "Team relay version: first team to complete all four sprints wins. Add a ball dribble for a harder challenge." },
+    { id: 154, name: "Ball Handling Fitness Circuit", duration: 10, category: "fitness", ages: ["U8","U10","U12","U14"], skills: ["dribbling","conditioning","footwork"], desc: "Timed stations combining ball handling and movement — builds stamina while reinforcing dribbling skills", intensity: "high", players: "1+", equipment: ["balls","cones"], instructions: "Set 4 stations, 90 seconds each, 15-second transition:\n1. Cone weave dribble — full speed, down and back\n2. Two-ball stationary dribble — alternate high-low\n3. Full-court dribble and back — two trips\n4. Crossover + 5-yard sprint at each cone (6 cones in a line)", coaching: ["Ball stays below the knee at all times.", "Explode on the sprint sections — don't coast.", "Weak hand on every second rep of stationary drills."], variations: "Reduce station time to 60 seconds for a more intense circuit. Partner version: one dribbles, one times and counts." },
   ],
   Baseball: [
     // ── WARM-UP ─────────────────────────────────────────────────────────
@@ -648,10 +758,10 @@ const badgeBase = {
   borderRadius: 20, fontSize: 12, fontWeight: 600, letterSpacing: 0.2,
 };
 const categoryColors = {
-  technical: { bg: "#dbeafe", color: "#1d4ed8" },
-  tactical: { bg: "#fef3c7", color: "#b45309" },
-  warmup: { bg: "#d1fae5", color: "#047857" },
-  fitness: { bg: "#fce7f3", color: "#be185d" },
+  technical: { bg: c.blue100, color: c.blue700 },
+  tactical: { bg: c.amber100, color: c.amber700 },
+  warmup: { bg: c.green100b, color: c.emerald600 },
+  fitness: { bg: c.pink100, color: c.pink700 },
 };
 
 // ── Drill Diagram Component (replaces old MiniField) ──────────────────
@@ -667,7 +777,7 @@ function _ddCount(players) {
   return 4;
 }
 function _ddHas(arr, kw) { return (arr || []).some(s => s.toLowerCase().includes(kw.toLowerCase())); }
-const _dd = { tA: "#3b82f6", tB: "#f43f5e", cone: "#f97316", ball: "#fbbf24", goal: "rgba(255,255,255,0.8)", arr: "rgba(255,255,255,0.5)", ln: "rgba(255,255,255,0.4)" };
+const _dd = { tA: c.blue500, tB: c.rose500, cone: c.orange500, ball: c.amber400, goal: "rgba(255,255,255,0.8)", arr: "rgba(255,255,255,0.5)", ln: "rgba(255,255,255,0.4)" };
 function _Dot({ x, y, team = "A" }) { return <circle cx={x} cy={y} r={3.5} fill={team === "A" ? _dd.tA : _dd.tB} stroke="white" strokeWidth="0.8" />; }
 function _Cone({ x, y }) { return <polygon points={`${x},${y-2.5} ${x-2},${y+1.5} ${x+2},${y+1.5}`} fill={_dd.cone} stroke="white" strokeWidth="0.4" opacity="0.9" />; }
 function _Goal({ x, y, facing = "up" }) { return <rect x={x-5} y={facing==="up"?y-5:y} width={10} height={5} rx="1" fill="none" stroke={_dd.goal} strokeWidth="1" />; }
@@ -805,14 +915,411 @@ function MiniField({ seed, sport }) {
   return <DrillDiagram drill={fakeDrill} sport={sport} />;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ANIMATED DRILL DIAGRAMS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const DRILL_ANIMATIONS = {
+  passingCircle: {
+    label: "Passing Circle",
+    fieldWidth: 200,
+    fieldHeight: 200,
+    players: (count = 6) => {
+      const ps = [];
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count - Math.PI / 2;
+        ps.push({ x: 100 + Math.cos(angle) * 70, y: 100 + Math.sin(angle) * 70 });
+      }
+      return ps;
+    },
+    cones: [],
+    paths: (count = 6) => {
+      const ps = [];
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count - Math.PI / 2;
+        ps.push({ x: 100 + Math.cos(angle) * 70, y: 100 + Math.sin(angle) * 70 });
+      }
+      const result = [];
+      for (let i = 0; i < count; i++) {
+        const next = (i + 2) % count;
+        result.push({ from: ps[i], to: ps[next], delay: i * 0.4, type: "ball" });
+      }
+      return result;
+    },
+  },
+  shuttleRun: {
+    label: "Shuttle Run",
+    fieldWidth: 240,
+    fieldHeight: 140,
+    players: () => [
+      { x: 30, y: 70 },
+      { x: 30, y: 90 },
+      { x: 30, y: 110 },
+    ],
+    cones: [
+      { x: 30, y: 50 },
+      { x: 120, y: 50 },
+      { x: 210, y: 50 },
+    ],
+    paths: () => [
+      {
+        waypoints: [
+          { x: 30, y: 70 }, { x: 120, y: 70 }, { x: 30, y: 70 },
+          { x: 210, y: 70 }, { x: 30, y: 70 },
+        ],
+        delay: 0,
+        type: "player",
+      },
+      {
+        waypoints: [
+          { x: 30, y: 90 }, { x: 120, y: 90 }, { x: 30, y: 90 },
+          { x: 210, y: 90 }, { x: 30, y: 90 },
+        ],
+        delay: 0.3,
+        type: "player",
+      },
+    ],
+  },
+  oneVone: {
+    label: "1v1 to Goal",
+    fieldWidth: 200,
+    fieldHeight: 240,
+    players: () => [
+      { x: 100, y: 200, team: "A" },
+      { x: 100, y: 160, team: "B" },
+    ],
+    cones: [
+      { x: 60, y: 130 },
+      { x: 140, y: 130 },
+    ],
+    paths: () => [
+      {
+        waypoints: [
+          { x: 100, y: 200 }, { x: 70, y: 160 },
+          { x: 90, y: 120 }, { x: 100, y: 40 },
+        ],
+        delay: 0,
+        type: "player",
+      },
+      {
+        waypoints: [
+          { x: 100, y: 160 }, { x: 80, y: 140 },
+          { x: 95, y: 100 }, { x: 100, y: 50 },
+        ],
+        delay: 0.2,
+        type: "defender",
+      },
+    ],
+    goals: [{ x: 80, y: 20, w: 40, h: 15 }],
+  },
+  smallSided: {
+    label: "Small-Sided Game (3v3)",
+    fieldWidth: 260,
+    fieldHeight: 180,
+    players: () => [
+      { x: 50, y: 60, team: "A" },
+      { x: 80, y: 120, team: "A" },
+      { x: 50, y: 140, team: "A" },
+      { x: 180, y: 50, team: "B" },
+      { x: 200, y: 100, team: "B" },
+      { x: 180, y: 140, team: "B" },
+    ],
+    cones: [],
+    paths: () => [
+      {
+        waypoints: [{ x: 50, y: 60 }, { x: 100, y: 50 }, { x: 140, y: 70 }],
+        delay: 0,
+        type: "player",
+      },
+      {
+        waypoints: [{ x: 80, y: 120 }, { x: 130, y: 110 }, { x: 160, y: 90 }],
+        delay: 0.3,
+        type: "player",
+      },
+      { from: { x: 50, y: 60 }, to: { x: 80, y: 120 }, delay: 0.1, type: "ball" },
+      { from: { x: 80, y: 120 }, to: { x: 140, y: 70 }, delay: 0.6, type: "ball" },
+    ],
+    goals: [
+      { x: 5, y: 70, w: 10, h: 40 },
+      { x: 245, y: 70, w: 10, h: 40 },
+    ],
+  },
+  relayRace: {
+    label: "Relay Race",
+    fieldWidth: 260,
+    fieldHeight: 140,
+    players: () => [
+      { x: 20, y: 40, team: "A" },
+      { x: 20, y: 70, team: "A" },
+      { x: 20, y: 100, team: "B" },
+      { x: 20, y: 130, team: "B" },
+    ],
+    cones: [
+      { x: 130, y: 40 }, { x: 130, y: 70 },
+      { x: 130, y: 100 }, { x: 130, y: 130 },
+      { x: 240, y: 40 }, { x: 240, y: 100 },
+    ],
+    paths: () => [
+      {
+        waypoints: [
+          { x: 20, y: 40 }, { x: 130, y: 40 }, { x: 240, y: 40 },
+          { x: 130, y: 40 }, { x: 20, y: 40 },
+        ],
+        delay: 0,
+        type: "player",
+      },
+      {
+        waypoints: [
+          { x: 20, y: 100 }, { x: 130, y: 100 }, { x: 240, y: 100 },
+          { x: 130, y: 100 }, { x: 20, y: 100 },
+        ],
+        delay: 0.2,
+        type: "player",
+      },
+    ],
+  },
+};
+
+function DrillAnimation({ drillType = "passingCircle", sport = "Soccer", width = 300, height = 200 }) {
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const animRef = useRef(null);
+  const startRef = useRef(null);
+  const DURATION = 4000;
+
+  const config = DRILL_ANIMATIONS[drillType];
+  if (!config) return null;
+
+  const fieldColor = sportConfig[sport]?.fieldColor || c.green600;
+  const players = config.players();
+  const cones = config.cones || [];
+  const goals = config.goals || [];
+  const paths = config.paths();
+
+  const vw = config.fieldWidth;
+  const vh = config.fieldHeight;
+
+  useEffect(() => {
+    if (!playing) {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+      return;
+    }
+
+    const animate = (timestamp) => {
+      if (!startRef.current) startRef.current = timestamp;
+      const elapsed = timestamp - startRef.current;
+      const t = (elapsed % DURATION) / DURATION;
+      setProgress(t);
+      animRef.current = requestAnimationFrame(animate);
+    };
+
+    animRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+      startRef.current = null;
+    };
+  }, [playing]);
+
+  const interpolate = (waypoints, t) => {
+    if (!waypoints || waypoints.length < 2) return waypoints?.[0] || { x: 0, y: 0 };
+    const segCount = waypoints.length - 1;
+    const rawIdx = t * segCount;
+    const idx = Math.floor(rawIdx);
+    const frac = rawIdx - idx;
+    const from = waypoints[Math.min(idx, segCount)];
+    const to = waypoints[Math.min(idx + 1, segCount)];
+    return {
+      x: from.x + (to.x - from.x) * frac,
+      y: from.y + (to.y - from.y) * frac,
+    };
+  };
+
+  return (
+    <div style={{ position: "relative", display: "inline-block" }}>
+      <svg
+        viewBox={`0 0 ${vw} ${vh}`}
+        style={{
+          width,
+          height,
+          borderRadius: 12,
+          background: fieldColor,
+          display: "block",
+        }}
+      >
+        {/* Field markings */}
+        <rect x="4" y="4" width={vw - 8} height={vh - 8} rx="6" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+
+        {/* Goals */}
+        {goals.map((g, i) => (
+          <rect key={`goal-${i}`} x={g.x} y={g.y} width={g.w} height={g.h} rx="2" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5" />
+        ))}
+
+        {/* Cones */}
+        {cones.map((cn, i) => (
+          <polygon
+            key={`cone-${i}`}
+            points={`${cn.x},${cn.y - 5} ${cn.x - 4},${cn.y + 3} ${cn.x + 4},${cn.y + 3}`}
+            fill={c.orange500}
+            stroke="white"
+            strokeWidth="0.5"
+          />
+        ))}
+
+        {/* Movement paths */}
+        {paths
+          .filter((p) => p.waypoints)
+          .map((path, i) => {
+            const pts = path.waypoints;
+            const d = pts.map((p, j) => `${j === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+            return (
+              <path
+                key={`path-${i}`}
+                d={d}
+                fill="none"
+                stroke="rgba(255,255,255,0.3)"
+                strokeWidth="1"
+                strokeDasharray="4 3"
+              />
+            );
+          })}
+
+        {/* Ball pass lines */}
+        {paths
+          .filter((p) => p.from && p.to && p.type === "ball")
+          .map((path, i) => {
+            const delayedT = Math.max(0, progress - path.delay);
+            const opacity = delayedT > 0 && delayedT < 0.3 ? 0.6 : 0.15;
+            return (
+              <line
+                key={`ballpath-${i}`}
+                x1={path.from.x}
+                y1={path.from.y}
+                x2={path.to.x}
+                y2={path.to.y}
+                stroke={c.amber400}
+                strokeWidth="1.5"
+                strokeDasharray="3 2"
+                opacity={playing ? opacity : 0.15}
+              />
+            );
+          })}
+
+        {/* Static player positions */}
+        {players.map((p, i) => {
+          const fillColor = p.team === "B" ? c.rose500 : c.blue500;
+          return (
+            <circle
+              key={`player-${i}`}
+              cx={p.x}
+              cy={p.y}
+              r={7}
+              fill={fillColor}
+              stroke="white"
+              strokeWidth="1.5"
+              opacity={0.4}
+            />
+          );
+        })}
+
+        {/* Animated players moving along paths */}
+        {playing &&
+          paths
+            .filter((p) => p.waypoints && p.type !== "ball")
+            .map((path, i) => {
+              const adjustedT = ((progress - path.delay + 1) % 1);
+              const pos = interpolate(path.waypoints, adjustedT);
+              const fillColor = path.type === "defender" ? c.rose500 : c.blue500;
+              return (
+                <circle
+                  key={`anim-${i}`}
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={8}
+                  fill={fillColor}
+                  stroke="white"
+                  strokeWidth="2"
+                />
+              );
+            })}
+
+        {/* Animated ball */}
+        {playing &&
+          paths
+            .filter((p) => p.from && p.to && p.type === "ball")
+            .map((path, i) => {
+              const adjustedT = Math.max(0, Math.min(1, (progress - path.delay) / 0.25));
+              if (adjustedT <= 0 || adjustedT >= 1) return null;
+              const x = path.from.x + (path.to.x - path.from.x) * adjustedT;
+              const y = path.from.y + (path.to.y - path.from.y) * adjustedT;
+              return (
+                <circle
+                  key={`ball-${i}`}
+                  cx={x}
+                  cy={y}
+                  r={5}
+                  fill={c.amber400}
+                  stroke="white"
+                  strokeWidth="1"
+                />
+              );
+            })}
+      </svg>
+
+      {/* Play/Pause control */}
+      <button
+        onClick={() => setPlaying(!playing)}
+        aria-label={playing ? "Pause animation" : "Play animation"}
+        style={{
+          position: "absolute",
+          bottom: 8,
+          right: 8,
+          width: 32,
+          height: 32,
+          borderRadius: "50%",
+          border: "none",
+          background: "rgba(0,0,0,0.5)",
+          color: "white",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backdropFilter: "blur(4px)",
+        }}
+      >
+        {playing ? (
+          <svg width="12" height="12" viewBox="0 0 12 12">
+            <rect x="1" y="1" width="3" height="10" fill="white" rx="1" />
+            <rect x="7" y="1" width="3" height="10" fill="white" rx="1" />
+          </svg>
+        ) : (
+          <Play size={14} fill="white" />
+        )}
+      </button>
+    </div>
+  );
+}
+
+function mapDrillToAnimation(drill) {
+  const focus = drill?.focus || drill?.skills?.map((s) => s.toLowerCase()) || [];
+  const phase = drill?.phase || drill?.category || "";
+
+  if (focus.some((f) => f.includes("passing")) && phase === "warmup") return "passingCircle";
+  if (focus.some((f) => f.includes("1v1"))) return "oneVone";
+  if (focus.some((f) => f.includes("agility") || f.includes("speed"))) return "shuttleRun";
+  if (phase === "game" || focus.some((f) => f.includes("match"))) return "smallSided";
+  if (focus.some((f) => f.includes("fun") || f.includes("relay"))) return "relayRace";
+  if (focus.some((f) => f.includes("passing"))) return "passingCircle";
+  return "passingCircle";
+}
+
 function PageHero({ title, subtitle, actions, gradient }) {
   return (
-    <div style={{ background: gradient || `linear-gradient(135deg, ${c.green800} 0%, ${c.green600} 100%)`, borderRadius: 20, padding: "36px 40px", color: c.white, position: "relative", overflow: "hidden", marginBottom: 28 }}>
+    <div className="whistle-hero" style={{ background: gradient || `linear-gradient(135deg, ${c.green800} 0%, ${c.green600} 100%)`, borderRadius: 20, padding: "36px 40px", color: c.white, position: "relative", overflow: "hidden", marginBottom: 28 }}>
       <div style={{ position: "absolute", top: -40, right: -20, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
       <div style={{ position: "absolute", bottom: -60, right: 80, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
       <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 6, position: "relative" }}>{title}</h1>
       <p style={{ fontSize: 15, opacity: 0.85, marginBottom: actions ? 20 : 0, maxWidth: 520, lineHeight: 1.5, position: "relative" }}>{subtitle}</p>
-      {actions && <div style={{ display: "flex", gap: 10, position: "relative" }}>{actions}</div>}
+      {actions && <div style={{ display: "flex", gap: 10, position: "relative", flexWrap: "wrap" }}>{actions}</div>}
     </div>
   );
 }
@@ -869,13 +1376,14 @@ function Sidebar({ page, setPage, sport, setSport, sportOpen, setSportOpen, isMo
     { key: "drills", label: "Drills", icon: Zap },
     { key: "teams", label: "Teams", icon: Users },
     { key: "history", label: "History", icon: Clock },
+    { key: "season", label: "Season Plan", icon: CalendarDays },
     { key: "pricing", label: "Pricing", icon: Star },
   ];
 
   const sidebarWidth = isMobile && !sidebarOpen ? 0 : 240;
 
   return (
-    <aside style={{
+    <aside className="whistle-sidebar" style={{
       width: isMobile ? (sidebarOpen ? 240 : 0) : 240,
       minHeight: "100vh",
       background: c.white,
@@ -963,8 +1471,8 @@ function DashboardPage({ sport, setPage }) {
   const [practicePlans] = useLocalStorage("practicePlans", defaultPracticePlans);
   const statCards = [
     { label: "Generate Plan", value: "New", icon: Sparkles, gradient: `linear-gradient(135deg, ${c.green600}, ${c.emerald600})`, onClick: () => setPage("generate") },
-    { label: "Drill Library", value: String(drills.length), icon: Zap, gradient: `linear-gradient(135deg, ${c.blue500}, #6366f1)`, onClick: () => setPage("drills") },
-    { label: "My Teams", value: String(teamsData.length), icon: Users, gradient: `linear-gradient(135deg, ${c.purple500}, #a855f7)`, onClick: () => setPage("teams") },
+    { label: "Drill Library", value: String(drills.length), icon: Zap, gradient: `linear-gradient(135deg, ${c.blue500}, ${c.indigo500})`, onClick: () => setPage("drills") },
+    { label: "My Teams", value: String(teamsData.length), icon: Users, gradient: `linear-gradient(135deg, ${c.purple500}, ${c.purple400})`, onClick: () => setPage("teams") },
     { label: "Saved Plans", value: String(practicePlans.length), icon: ClipboardList, gradient: `linear-gradient(135deg, ${c.amber500}, ${c.orange500})`, onClick: () => setPage("plans") },
   ];
 
@@ -1018,7 +1526,7 @@ function DashboardPage({ sport, setPage }) {
               {plan.status === "complete" ? <CheckCircle2 size={20} color={c.green500} /> : <Circle size={20} color={c.slate300} />}
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: c.slate700 }}>{plan.title}</div>
-                <div style={{ fontSize: 12, color: c.slate500, marginTop: 2 }}>{plan.date} \u00b7 {plan.drills} drills</div>
+                <div style={{ fontSize: 12, color: c.slate500, marginTop: 2 }}>{plan.date} · {plan.drills} drills</div>
               </div>
               <span style={{ ...badgeBase, background: c.green100, color: c.green700 }}>{plan.age}</span>
               <span style={{ fontSize: 13, color: c.slate500 }}>{plan.duration} min</span>
@@ -1040,7 +1548,7 @@ function DashboardPage({ sport, setPage }) {
         </div>
         <div style={{ ...cardStyle, padding: "20px 22px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}><BarChart3 size={18} color={c.blue600} /></div>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: c.blue50, display: "flex", alignItems: "center", justifyContent: "center" }}><BarChart3 size={18} color={c.blue600} /></div>
             <span style={{ fontSize: 13, fontWeight: 600, color: c.slate600 }}>Avg Attendance</span>
           </div>
           <div style={{ fontSize: 28, fontWeight: 700, color: c.slate800 }}>92%</div>
@@ -1048,7 +1556,7 @@ function DashboardPage({ sport, setPage }) {
         </div>
         <div style={{ ...cardStyle, padding: "20px 22px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#fef3c7", display: "flex", alignItems: "center", justifyContent: "center" }}><Award size={18} color={c.amber500} /></div>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: c.amber100, display: "flex", alignItems: "center", justifyContent: "center" }}><Award size={18} color={c.amber500} /></div>
             <span style={{ fontSize: 13, fontWeight: 600, color: c.slate600 }}>Avg Rating</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1115,9 +1623,9 @@ function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
 
       {/* Sport drill count indicator */}
       {sport !== "Soccer" && (
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 20px", borderRadius: 12, background: "#f0fdf4", border: "1px solid #bbf7d0", marginBottom: 16 }}>
-          <Info size={18} color="#16a34a" style={{ flexShrink: 0 }} />
-          <p style={{ fontSize: 13, color: "#166534", lineHeight: 1.5, margin: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 20px", borderRadius: 12, background: c.green50, border: `1px solid ${c.green200}`, marginBottom: 16 }}>
+          <Info size={18} color={c.green600} style={{ flexShrink: 0 }} />
+          <p style={{ fontSize: 13, color: c.green800, lineHeight: 1.5, margin: 0 }}>
             <strong>{sport}</strong> plan generation is live with {(drillsBySport[sport] || []).length} drills across all phases.
           </p>
         </div>
@@ -1125,7 +1633,7 @@ function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
 
       {/* Step Indicator */}
       <div style={{ ...cardStyle, padding: "20px 28px", marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div className="whistle-step-indicator" style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {stepLabels.map((label, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1135,10 +1643,10 @@ function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
                   background: i <= step ? c.green500 : "transparent",
                   color: i <= step ? c.white : c.slate400,
                   border: `2px solid ${i <= step ? c.green500 : c.slate300}`,
-                }}>{i < step ? "\u2713" : i + 1}</div>
+                }}>{i < step ? "✓" : i + 1}</div>
                 <span style={{ fontSize: 14, fontWeight: i === step ? 600 : 400, color: i <= step ? c.slate800 : c.slate400 }}>{label}</span>
               </div>
-              {i < stepLabels.length - 1 && <div style={{ width: 40, height: 2, background: i < step ? c.green500 : c.slate200, transition: "all 0.3s" }} />}
+              {i < stepLabels.length - 1 && <div className="whistle-step-connector" style={{ width: 40, height: 2, background: i < step ? c.green500 : c.slate200, transition: "all 0.3s" }} />}
             </div>
           ))}
         </div>
@@ -1170,7 +1678,7 @@ function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
                           <div style={{ width: 40, height: 40, borderRadius: 10, background: isSelected ? c.green500 : c.green100, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: isSelected ? c.white : c.green700, transition: "all 0.2s" }}>{team.age}</div>
                           <div>
                             <div style={{ fontWeight: 600, color: c.slate800, fontSize: 15 }}>{team.name}</div>
-                            <div style={{ fontSize: 12, color: c.slate500, marginTop: 2 }}>{team.players.length} players \u00b7 {team.season}</div>
+                            <div style={{ fontSize: 12, color: c.slate500, marginTop: 2 }}>{team.players.length} players · {team.season}</div>
                           </div>
                           {isSelected && <CheckCircle2 size={18} color={c.green500} style={{ marginLeft: "auto" }} />}
                         </div>
@@ -1247,7 +1755,7 @@ function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
             <h2 style={{ fontSize: 22, fontWeight: 700, color: c.slate800, marginBottom: 4 }}>Session Focus</h2>
             <p style={{ color: c.slate500, marginBottom: 24, fontSize: 14 }}>Pick 1-3 areas to focus on</p>
             <p style={{ fontSize: 12, color: c.slate500, marginBottom: 16 }}>{config.focusAreas.length}/3 selected</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 10 }}>
+            <div className="whistle-focus-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 10 }}>
               {(FOCUS_OPTIONS_BY_SPORT[sport] || FOCUS_OPTIONS_BY_SPORT.Soccer).map(f => {
                 const selected = config.focusAreas.includes(f.value);
                 const atMax = config.focusAreas.length >= 3 && !selected;
@@ -1306,7 +1814,7 @@ function escapeHTML(str) {
 
 // ─── EXPORT & PRINT HANDLERS
 function generatePlanTextSummary(plan, config, sport, ageInfo) {
-  let summary = `${sport} Training Plan\n${ageInfo?.label || config.ageGroup} • ${config.playerCount} players • ${plan.reduce((sum, p) => sum + p.phaseDuration, 0)} minutes\n`;
+  let summary = `${sport} Training Plan\n${ageInfo?.label || config.ageGroup} · ${config.playerCount} players · ${plan.reduce((sum, p) => sum + p.phaseDuration, 0)} minutes\n`;
   if (config.focusAreas.length > 0) summary += `Focus: ${config.focusAreas.join(", ")}\n`;
   summary += `\n${"─".repeat(60)}\n\n`;
   plan.forEach((drill, idx) => {
@@ -1323,7 +1831,7 @@ function generatePlanTextSummary(plan, config, sport, ageInfo) {
 function generatePrintHTML(plan, config, sport, ageInfo) {
   const totalTime = plan.reduce((sum, p) => sum + p.phaseDuration, 0);
   const phaseLabels = { "Warm-Up": "warmup", "Technical": "technical", "Tactical": "tactical", "Game": "game", "Cool-Down": "cooldown" };
-  const phaseColorMap = { warmup: "#f59e0b", technical: "#3b82f6", tactical: "#8b5cf6", game: "#22c55e", cooldown: "#06b6d4" };
+  const phaseColorMap = { warmup: c.amber500, technical: c.blue500, tactical: c.purple500, game: c.green500, cooldown: c.cyan500 };
   const safeSport = escapeHTML(sport);
   const safeAge = escapeHTML(ageInfo?.label || config.ageGroup);
   const safePlayerCount = escapeHTML(config.playerCount);
@@ -1344,8 +1852,266 @@ function handleShare(plan, config, sport, ageInfo) {
   navigator.clipboard.writeText(summary).then(() => alert("Training plan copied to clipboard!")).catch(() => alert("Unable to copy."));
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PRACTICE TIMER
+// ═══════════════════════════════════════════════════════════════════════════
+function useAudioBeep() {
+  const ctxRef = useRef(null);
+  const play = useCallback((freq = 880, dur = 0.2, type = "sine") => {
+    try {
+      if (!ctxRef.current) ctxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = ctxRef.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + dur);
+    } catch (e) { /* ignore audio errors */ }
+  }, []);
+  const playTransition = useCallback(() => { play(660, 0.15); setTimeout(() => play(880, 0.15), 180); setTimeout(() => play(1100, 0.25), 360); }, [play]);
+  const playWarning = useCallback(() => { play(440, 0.1); }, [play]);
+  const playFinish = useCallback(() => { play(523, 0.2); setTimeout(() => play(659, 0.2), 220); setTimeout(() => play(784, 0.2), 440); setTimeout(() => play(1047, 0.4), 660); }, [play]);
+  return { playTransition, playWarning, playFinish };
+}
+
+function PracticeTimer({ plan, config, sport = "Soccer", onExit }) {
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState(plan[0]?.phaseDuration * 60 || 0);
+  const [isRunning, setIsRunning] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
+  const containerRef = useRef(null);
+  const { playTransition, playWarning, playFinish } = useAudioBeep();
+  const ageInfo = AGE_GROUPS.find(a => a.value === config.ageGroup);
+  const phaseLabels = { "Warm-Up": "warmup", "Technical": "technical", "Tactical": "tactical", "Game": "game", "Cool-Down": "cooldown" };
+
+  const currentDrill = plan[currentIdx];
+  const nextDrill = currentIdx < plan.length - 1 ? plan[currentIdx + 1] : null;
+  const totalDuration = currentDrill?.phaseDuration * 60 || 1;
+  const progress = 1 - (secondsLeft / totalDuration);
+  const overallElapsed = plan.slice(0, currentIdx).reduce((s, d) => s + d.phaseDuration * 60, 0) + (totalDuration - secondsLeft);
+  const overallTotal = plan.reduce((s, d) => s + d.phaseDuration * 60, 0);
+  const overallProgress = overallElapsed / overallTotal;
+
+  useEffect(() => {
+    if (!isRunning || isComplete) return;
+    const interval = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          // Move to next drill
+          if (currentIdx < plan.length - 1) {
+            if (!isMuted) playTransition();
+            setCurrentIdx(i => i + 1);
+            return plan[currentIdx + 1].phaseDuration * 60;
+          } else {
+            // Practice complete
+            if (!isMuted) playFinish();
+            setIsRunning(false);
+            setIsComplete(true);
+            return 0;
+          }
+        }
+        // Warning beep at 30 seconds and 10 seconds
+        if (!isMuted && (prev === 31 || prev === 11)) playWarning();
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isRunning, isComplete, currentIdx, isMuted, plan, playTransition, playWarning, playFinish]);
+
+  const skipDrill = () => {
+    if (currentIdx < plan.length - 1) {
+      if (!isMuted) playTransition();
+      setCurrentIdx(i => i + 1);
+      setSecondsLeft(plan[currentIdx + 1].phaseDuration * 60);
+    } else {
+      if (!isMuted) playFinish();
+      setIsComplete(true);
+      setIsRunning(false);
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement && containerRef.current) {
+      containerRef.current.requestFullscreen?.().catch(() => {});
+      setIsFullscreen(true);
+    } else if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+      setIsFullscreen(false);
+    }
+  };
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
+
+  const formatTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+  const phaseKey = phaseLabels[currentDrill?.phaseLabel] || "technical";
+  const color = phaseColorMap[phaseKey] || c.green500;
+
+  if (isComplete) {
+    return (
+      <div ref={containerRef} style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: `linear-gradient(135deg, ${c.green800}, ${c.emerald600})`, borderRadius: isFullscreen ? 0 : 20, padding: 40, textAlign: "center", color: c.white }}>
+        <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
+        <h1 style={{ fontSize: 36, fontWeight: 700, marginBottom: 8 }}>Practice Complete!</h1>
+        <p style={{ fontSize: 18, opacity: 0.85, marginBottom: 8 }}>{ageInfo?.label} · {plan.length} drills · {Math.round(overallTotal / 60)} minutes</p>
+        <p style={{ fontSize: 14, opacity: 0.7, marginBottom: 32 }}>Great work, Coach!</p>
+        <button onClick={onExit} style={{ padding: "14px 32px", borderRadius: 12, border: "2px solid rgba(255,255,255,0.4)", background: "rgba(255,255,255,0.15)", color: c.white, fontWeight: 600, fontSize: 16, cursor: "pointer", backdropFilter: "blur(8px)" }}>
+          Back to Plan
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} style={{
+      minHeight: isFullscreen ? "100vh" : "calc(100vh - 120px)",
+      display: "flex", flexDirection: "column",
+      background: isFullscreen ? c.slate900 : "transparent",
+      borderRadius: isFullscreen ? 0 : 0,
+      position: isFullscreen ? "fixed" : "relative",
+      top: isFullscreen ? 0 : "auto", left: isFullscreen ? 0 : "auto",
+      right: isFullscreen ? 0 : "auto", bottom: isFullscreen ? 0 : "auto",
+      zIndex: isFullscreen ? 10000 : "auto",
+    }}>
+      {/* Top controls bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: isFullscreen ? "20px 32px" : "0 0 16px 0" }}>
+        <button onClick={onExit} style={{ padding: "8px 16px", borderRadius: 10, border: `1px solid ${c.slate300}`, background: isFullscreen ? "rgba(255,255,255,0.1)" : c.white, color: isFullscreen ? c.white : c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <ChevronLeft size={15} /> Exit Timer
+        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => setIsMuted(!isMuted)} aria-label={isMuted ? "Unmute" : "Mute"} style={{ padding: "8px 12px", borderRadius: 10, border: `1px solid ${isFullscreen ? "rgba(255,255,255,0.2)" : c.slate200}`, background: isFullscreen ? "rgba(255,255,255,0.1)" : c.white, color: isFullscreen ? c.white : c.slate600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontWeight: 500, fontSize: 12 }}>
+            {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />} {isMuted ? "Muted" : "Sound On"}
+          </button>
+          <button onClick={toggleFullscreen} aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"} style={{ padding: "8px 12px", borderRadius: 10, border: `1px solid ${isFullscreen ? "rgba(255,255,255,0.2)" : c.slate200}`, background: isFullscreen ? "rgba(255,255,255,0.1)" : c.white, color: isFullscreen ? c.white : c.slate600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontWeight: 500, fontSize: 12 }}>
+            {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />} {isFullscreen ? "Exit Full" : "Full Screen"}
+          </button>
+        </div>
+      </div>
+
+      {/* Overall progress */}
+      <div style={{ padding: isFullscreen ? "0 32px" : "0", marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: isFullscreen ? "rgba(255,255,255,0.5)" : c.slate400, marginBottom: 4 }}>
+          <span>Overall Progress</span>
+          <span>Drill {currentIdx + 1} of {plan.length} · {formatTime(Math.round(overallTotal - overallElapsed))} remaining</span>
+        </div>
+        <div style={{ height: 6, borderRadius: 3, background: isFullscreen ? "rgba(255,255,255,0.1)" : c.slate200, overflow: "hidden" }}>
+          <div style={{ height: "100%", borderRadius: 3, background: c.green500, width: `${overallProgress * 100}%`, transition: "width 1s linear" }} />
+        </div>
+        {/* Phase indicators */}
+        <div style={{ display: "flex", marginTop: 6, gap: 2 }}>
+          {plan.map((p, i) => {
+            const pk = phaseLabels[p.phaseLabel] || "technical";
+            return <div key={i} style={{ flex: p.phaseDuration, height: 3, borderRadius: 2, background: i < currentIdx ? (phaseColorMap[pk] || c.green500) : i === currentIdx ? `${phaseColorMap[pk] || c.green500}80` : (isFullscreen ? "rgba(255,255,255,0.08)" : c.slate100) }} />;
+          })}
+        </div>
+      </div>
+
+      {/* Main timer display */}
+      <div style={{
+        flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        padding: isFullscreen ? "20px 32px" : "20px",
+        background: isFullscreen ? "transparent" : `linear-gradient(135deg, ${c.slate900}, ${c.slate800})`,
+        borderRadius: isFullscreen ? 0 : 20, color: c.white,
+        minHeight: isFullscreen ? "auto" : 400,
+      }}>
+        {/* Phase label */}
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 20, background: `${color}30`, marginBottom: 16 }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
+          <span style={{ fontSize: 13, fontWeight: 600, color, textTransform: "uppercase", letterSpacing: 1 }}>{currentDrill?.phaseLabel}</span>
+        </div>
+
+        {/* Drill name */}
+        <h2 style={{ fontSize: isFullscreen ? 42 : 32, fontWeight: 700, marginBottom: 8, textAlign: "center" }}>{currentDrill?.name}</h2>
+
+        {/* Circular timer */}
+        <div style={{ position: "relative", width: isFullscreen ? 280 : 220, height: isFullscreen ? 280 : 220, margin: "16px 0" }}>
+          <svg viewBox="0 0 100 100" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
+            <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
+            <circle cx="50" cy="50" r="44" fill="none" stroke={color} strokeWidth="6"
+              strokeDasharray={`${2 * Math.PI * 44}`}
+              strokeDashoffset={`${2 * Math.PI * 44 * (1 - progress)}`}
+              strokeLinecap="round" style={{ transition: "stroke-dashoffset 1s linear" }} />
+          </svg>
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ fontSize: isFullscreen ? 56 : 44, fontWeight: 700, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{formatTime(secondsLeft)}</div>
+            <div style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>of {currentDrill?.phaseDuration} min</div>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 8 }}>
+          <button onClick={() => setIsRunning(!isRunning)} style={{
+            width: isFullscreen ? 72 : 60, height: isFullscreen ? 72 : 60, borderRadius: "50%",
+            border: "none", background: isRunning ? "rgba(255,255,255,0.15)" : color,
+            color: c.white, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 24, transition: "all 0.2s", boxShadow: isRunning ? "none" : `0 4px 20px ${color}60`,
+          }}>
+            {isRunning ? <Pause size={isFullscreen ? 28 : 24} /> : <Play size={isFullscreen ? 28 : 24} style={{ marginLeft: 3 }} />}
+          </button>
+          <button onClick={skipDrill} aria-label="Skip to next drill" style={{
+            width: 48, height: 48, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.2)",
+            background: "rgba(255,255,255,0.08)", color: c.white, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <SkipForward size={20} />
+          </button>
+        </div>
+
+        {/* Coaching points (compact) */}
+        {currentDrill?.coaching?.length > 0 && (
+          <div style={{ marginTop: 24, maxWidth: 500, width: "100%" }}>
+            <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, opacity: 0.4, marginBottom: 8 }}>Coaching Points</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {currentDrill.coaching.slice(0, 3).map((pt, i) => (
+                <span key={i} style={{ padding: "4px 10px", borderRadius: 6, background: "rgba(255,255,255,0.08)", fontSize: 12, opacity: 0.7 }}>{pt}</span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Next up card */}
+      {nextDrill && (
+        <div style={{
+          padding: isFullscreen ? "16px 32px" : "16px 0", marginTop: 12,
+          display: "flex", alignItems: "center", gap: 12,
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, color: isFullscreen ? "rgba(255,255,255,0.4)" : c.slate400, whiteSpace: "nowrap" }}>Next up</div>
+          <div style={{
+            flex: 1, display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
+            background: isFullscreen ? "rgba(255,255,255,0.05)" : c.white,
+            borderRadius: 12, border: `1px solid ${isFullscreen ? "rgba(255,255,255,0.08)" : c.slate200}`,
+          }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 8,
+              background: `${phaseColorMap[phaseLabels[nextDrill.phaseLabel]] || c.green500}20`,
+              color: phaseColorMap[phaseLabels[nextDrill.phaseLabel]] || c.green500,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 13, fontWeight: 700, flexShrink: 0,
+            }}>{nextDrill.phaseDuration}'</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: isFullscreen ? c.white : c.slate800 }}>{nextDrill.name}</div>
+              <div style={{ fontSize: 12, color: isFullscreen ? "rgba(255,255,255,0.4)" : c.slate500 }}>{nextDrill.phaseLabel}</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── PLAN RESULT PAGE (CoachPlan's plan view in Whistle's design language)
-function PlanResultPage({ plan: initialPlan, config, sport = "Soccer", setPage, onRegenerate, onSavePlan, onLogPractice }) {
+function PlanResultPage({ plan: initialPlan, config, sport = "Soccer", setPage, onRegenerate, onSavePlan, onLogPractice, onStartTimer, isPro = false }) {
+  const isMobile = useIsMobile();
   const [plan, setPlan] = useState(initialPlan);
   const [expandedIdx, setExpandedIdx] = useState(null);
   const [swappingIdx, setSwappingIdx] = useState(null);
@@ -1379,13 +2145,13 @@ function PlanResultPage({ plan: initialPlan, config, sport = "Soccer", setPage, 
 
       {/* Plan Header */}
       <div style={{ ...cardStyle, padding: "28px 32px", marginBottom: 24, cursor: "default" }}>
-        <div style={{ display: "flex", flexDirection: useIsMobile() ? "column" : "row", justifyContent: "space-between", alignItems: useIsMobile() ? "stretch" : "flex-start", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-start", gap: 16 }}>
           <div>
             <h1 style={{ fontSize: 26, fontWeight: 700, color: c.slate800, marginBottom: 4 }}>Your Training Plan</h1>
-            <p style={{ fontSize: 14, color: c.slate500, marginBottom: 4 }}>{ageInfo?.label} \u00b7 {config.playerCount} players \u00b7 {totalTime} min \u00b7 Focus: {config.focusAreas.join(", ")}</p>
+            <p style={{ fontSize: 14, color: c.slate500, marginBottom: 4 }}>{ageInfo?.label} · {config.playerCount} players · {totalTime} min · Focus: {config.focusAreas.join(", ")}</p>
             {ageInfo?.philosophy && <p style={{ fontSize: 12, color: c.green600, fontStyle: "italic" }}>{ageInfo.philosophy}</p>}
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <div className="whistle-plan-actions" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             <button onClick={() => { if (onSavePlan) onSavePlan(planTitle); setSaved(true); }} aria-label={saved ? "Plan saved" : "Save plan"} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: saved ? c.green700 : `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`, color: c.white, fontWeight: 600, fontSize: 13, cursor: saved ? "default" : "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: saved ? "none" : "0 2px 8px rgba(22,163,74,0.3)", transition: "all 0.3s ease" }}>
               <CheckCircle2 size={15} /> {saved ? "Plan Saved!" : "Save Plan"}
             </button>
@@ -1395,8 +2161,11 @@ function PlanResultPage({ plan: initialPlan, config, sport = "Soccer", setPage, 
             <button onClick={() => handlePrintOrExport(plan, config, sport, ageInfo)} aria-label="Print plan" style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <Printer size={15} /> Print
             </button>
-            <button onClick={() => handleShare(plan, config, sport, ageInfo)} aria-label="Share plan" style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-              <Share2 size={15} /> Share
+            <button onClick={() => handleShare(plan, config, sport, ageInfo)} aria-label="Copy plan to clipboard" style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              <Copy size={15} /> Copy to Clipboard
+            </button>
+            <button onClick={() => onStartTimer && onStartTimer(plan)} aria-label="Start practice timer" style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: `linear-gradient(135deg, ${c.amber500}, ${c.amber600})`, color: c.white, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 2px 8px rgba(245,158,11,0.3)" }}>
+              <Timer size={15} /> Start Practice
             </button>
             <button onClick={onRegenerate} aria-label="Regenerate plan" style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <RotateCcw size={15} /> Regenerate
@@ -1445,11 +2214,11 @@ function PlanResultPage({ plan: initialPlan, config, sport = "Soccer", setPage, 
                 }}>{drill.phaseDuration}'</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: color, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                    {drill.phaseLabel} \u00b7 {runningTime}'\u2013{runningTime + drill.phaseDuration}'
+                    {drill.phaseLabel} · {runningTime}'–{runningTime + drill.phaseDuration}'
                   </div>
                   <div style={{ fontSize: 16, fontWeight: 600, color: c.slate800, marginTop: 2 }}>{drill.name}</div>
                 </div>
-                <div style={{ color: c.slate400, fontSize: 20, transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>\u25be</div>
+                <div style={{ color: c.slate400, fontSize: 20, transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▾</div>
               </div>
 
               {expanded && (
@@ -1460,7 +2229,7 @@ function PlanResultPage({ plan: initialPlan, config, sport = "Soccer", setPage, 
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {drill.coaching?.map((point, j) => (
                       <div key={j} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                        <span style={{ color: color, fontSize: 8, marginTop: 6 }}>\u25cf</span>
+                        <span style={{ color: color, fontSize: 8, marginTop: 6 }}>●</span>
                         <span style={{ color: c.slate700, fontSize: 14, lineHeight: 1.5 }}>{point}</span>
                       </div>
                     ))}
@@ -1471,7 +2240,7 @@ function PlanResultPage({ plan: initialPlan, config, sport = "Soccer", setPage, 
                       {drill.equipment?.map(e => (
                         <span key={e} style={{ ...badgeBase, background: `${color}12`, color: color, textTransform: "capitalize" }}>{e}</span>
                       ))}
-                      <span style={{ ...badgeBase, background: `${color}12`, color: color }}>{drill.players?.[0]}\u2013{drill.players?.[1]} players</span>
+                      <span style={{ ...badgeBase, background: `${color}12`, color: color }}>{drill.players?.[0]}–{drill.players?.[1]} players</span>
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); setSwappingIdx(swappingIdx === i ? null : i); }}
                       style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${color}`, background: swappingIdx === i ? color : "transparent", color: swappingIdx === i ? c.white : color, fontWeight: 600, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, transition: "all 0.15s" }}>
@@ -1546,7 +2315,7 @@ function DrillsPage({ sport, setPage, setSelectedDrill }) {
         subtitle={`Browse ${drills.length} ${sport.toLowerCase()} drills with coaching points and diagrams`}
         actions={<><HeroBtn label="Create Drill" primary icon={Plus} onClick={() => alert("Custom drill creation coming soon!")} /><HeroBtn label={showFavoritesOnly ? "All Drills" : "Favorites"} icon={Heart} onClick={() => setShowFavoritesOnly(!showFavoritesOnly)} /></>}
       />
-      <div style={{ display: "flex", gap: 12, marginBottom: 24, alignItems: "center" }}>
+      <div className="whistle-filter-bar" style={{ display: "flex", gap: 12, marginBottom: 24, alignItems: "center" }}>
         <div style={{ position: "relative", flex: 1 }}>
           <Search size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: c.slate400 }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search drills..."
@@ -1571,7 +2340,7 @@ function DrillsPage({ sport, setPage, setSelectedDrill }) {
           <p style={{ fontSize: 14, color: c.slate500 }}>Try adjusting your filters or search term</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 18 }}>
+        <div className="whistle-drill-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 18 }}>
           {filtered.map(drill => {
             const cat = categoryColors[drill.category] || categoryColors.technical;
             const isFavorite = favorites.includes(drill.id);
@@ -1619,7 +2388,7 @@ function DrillDetailPage({ drill, sport, setPage }) {
           <p style={{ fontSize: 15, color: c.slate500, marginBottom: 12 }}>{drill.desc || drill.description}</p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <span style={{ ...badgeBase, background: cat.bg, color: cat.color }}>{drill.category}</span>
-            <span style={{ ...badgeBase, background: "#fef3c7", color: "#b45309" }}>{drill.intensity} intensity</span>
+            <span style={{ ...badgeBase, background: c.amber100, color: c.amber700 }}>{drill.intensity} intensity</span>
             <span style={{ ...badgeBase, background: c.slate100, color: c.slate600 }}>{drill.duration} min</span>
             <span style={{ ...badgeBase, background: c.slate100, color: c.slate600 }}>{typeof drill.players === 'string' ? drill.players : `${drill.players[0]}-${drill.players[1]}`} players</span>
           </div>
@@ -1648,7 +2417,20 @@ function DrillDetailPage({ drill, sport, setPage }) {
         </svg>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: typeof window !== 'undefined' && window.matchMedia("(max-width: 768px)").matches ? "1fr" : "1fr 320px", gap: 20 }}>
+      {/* Animated Preview */}
+      <div style={{ ...cardStyle, padding: 24, marginBottom: 20 }}>
+        <h4 style={{ fontSize: 14, fontWeight: 600, color: c.slate600, marginBottom: 8 }}>
+          Animated Preview
+        </h4>
+        <DrillAnimation
+          drillType={mapDrillToAnimation(drill)}
+          sport={sport}
+          width={typeof window !== 'undefined' && window.matchMedia("(max-width: 768px)").matches ? 280 : 400}
+          height={typeof window !== 'undefined' && window.matchMedia("(max-width: 768px)").matches ? 180 : 260}
+        />
+      </div>
+
+      <div className="whistle-drill-detail-grid" style={{ display: "grid", gridTemplateColumns: typeof window !== 'undefined' && window.matchMedia("(max-width: 768px)").matches ? "1fr" : "1fr 320px", gap: 20 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div style={{ ...cardStyle, padding: "22px 24px", cursor: "default" }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: c.slate800, marginBottom: 12 }}>Instructions</h3>
@@ -1721,7 +2503,7 @@ function PlansPage({ sport, setPage }) {
                 <span style={{ ...badgeBase, background: c.slate100, color: c.slate500 }}>{plan.drills} drills</span>
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-                {(plan.focus || []).map(f => <span key={f} style={{ ...badgeBase, background: "#dbeafe", color: "#1d4ed8", fontSize: 11 }}>{f}</span>)}
+                {(plan.focus || []).map(f => <span key={f} style={{ ...badgeBase, background: c.blue100, color: c.blue700, fontSize: 11 }}>{f}</span>)}
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 12, color: c.slate500 }}>{plan.date}</span>
@@ -1836,7 +2618,7 @@ function HistoryPage() {
                   <h3 style={{ fontSize: 16, fontWeight: 700, color: c.slate800, marginBottom: 4 }}>{session.plan}</h3>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <span style={{ fontSize: 13, color: c.slate500 }}>{session.date}</span>
-                    <span style={{ fontSize: 13, color: c.slate500 }}>\u00b7</span>
+                    <span style={{ fontSize: 13, color: c.slate500 }}>·</span>
                     <span style={{ fontSize: 13, color: c.slate500 }}>{session.team}</span>
                   </div>
                 </div>
@@ -1862,37 +2644,233 @@ function HistoryPage() {
 }
 
 // ─── Pricing Page ───────────────────────────────────────────────────────
-function PricingPage({ sport }) {
-  const tiers = [
-    { name: "Free", price: "$0", period: "/month", features: ["3 practice plans per month","Full drill library","Animated drill diagrams","1 team"], active: false, popular: false },
-    { name: "Pro", price: "$49.99", period: "/year", sub: "$4.17/month \u00b7 Save $21.89/yr", features: ["Unlimited practice plans","Full drill library","Animated drill diagrams","Unlimited teams","PDF export","Shareable plan links","Priority support"], active: true, popular: true },
-  ];
+// ═══════════════════════════════════════════════════════════════════════════
+// STRIPE CHECKOUT INTEGRATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+const STRIPE_PUBLISHABLE_KEY = typeof window !== "undefined"
+  ? window.REACT_APP_STRIPE_PUBLISHABLE_KEY || "pk_test_YOUR_KEY_HERE"
+  : "";
+
+const PRO_FEATURES = [
+  { name: "Season Planning", desc: "Map out your entire season with templates", free: false },
+  { name: "PDF Export", desc: "Download practice plans as polished PDFs", free: false },
+  { name: "Unlimited Saved Plans", desc: "Save as many practice plans as you need", free: false },
+  { name: "Animated Drill Diagrams", desc: "Interactive drill visualizations", free: false },
+  { name: "Generate Practice Plans", desc: "AI-powered plan generation", free: true },
+  { name: "Drill Library (210+ drills)", desc: "Full access to all drills", free: true },
+  { name: "Team Management", desc: "Manage your roster and track attendance", free: true },
+  { name: "Practice History", desc: "Log and review past sessions", free: true },
+];
+
+const PRICING_TIERS = [
+  {
+    name: "Free",
+    price: "$0",
+    period: "forever",
+    description: "Perfect for getting started",
+    features: PRO_FEATURES.filter((f) => f.free).map((f) => f.name),
+    cta: "Current Plan",
+    disabled: true,
+    stripePriceId: null,
+  },
+  {
+    name: "Pro",
+    price: "$8",
+    period: "/month",
+    description: "Everything you need to run a great season",
+    features: PRO_FEATURES.map((f) => f.name),
+    cta: "Start Free Trial",
+    popular: true,
+    stripePriceId: "price_YOUR_MONTHLY_PRICE_ID",
+  },
+  {
+    name: "Pro Annual",
+    price: "$60",
+    period: "/year",
+    description: "Save 37% with annual billing",
+    features: PRO_FEATURES.map((f) => f.name),
+    cta: "Start Free Trial",
+    stripePriceId: "price_YOUR_ANNUAL_PRICE_ID",
+    savings: "Save $36/yr",
+  },
+];
+
+function useProAccess() {
+  const [isPro, setIsPro] = useLocalStorage("wc_isPro", false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") === "success") {
+      setIsPro(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
+  return isPro;
+}
+
+function PricingPagePro({ sport }) {
+  const [loading, setLoading] = useState(null);
+  const isMobile = useIsMobile();
+
+  const handleCheckout = async (tier) => {
+    if (!tier.stripePriceId) return;
+    setLoading(tier.name);
+
+    try {
+      const response = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          priceId: tier.stripePriceId,
+          successUrl: window.location.origin + "?checkout=success",
+          cancelUrl: window.location.origin + "?checkout=cancel",
+        }),
+      });
+      const { sessionUrl } = await response.json();
+      window.location.href = sessionUrl;
+    } catch (err) {
+      console.error("Checkout error:", err);
+      setLoading(null);
+    }
+  };
+
   return (
     <div>
-      <PageHero gradient={sportConfig[sport].heroGradient} title="Pricing" subtitle="Choose the plan that works for your coaching needs" />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, maxWidth: 800, margin: "0 auto" }}>
-        {tiers.map(plan => (
-          <div key={plan.name} style={{ ...cardStyle, padding: "32px 28px", position: "relative", border: plan.popular ? `2px solid ${c.green500}` : `1px solid ${c.slate200}` }}>
-            {plan.popular && <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", ...badgeBase, background: c.green600, color: c.white, fontSize: 11 }}>Most Popular</div>}
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: c.slate800, textAlign: "center", marginBottom: 4 }}>{plan.name}</h3>
-            <div style={{ textAlign: "center", marginBottom: 4 }}>
-              <span style={{ fontSize: 40, fontWeight: 800, color: c.slate900 }}>{plan.price}</span>
-              <span style={{ fontSize: 14, color: c.slate500 }}>{plan.period}</span>
+      <PageHero
+        title="Upgrade to Whistle Pro"
+        subtitle="Unlock season planning, PDF exports, animated diagrams, and unlimited saved plans."
+        gradient={sportConfig[sport]?.heroGradient}
+      />
+
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
+        gap: 16,
+        marginBottom: 40,
+      }}>
+        {PRICING_TIERS.map((tier) => (
+          <div
+            key={tier.name}
+            style={{
+              background: c.white,
+              borderRadius: 16,
+              border: tier.popular
+                ? `2px solid ${c.green500}`
+                : `1px solid ${c.slate200}`,
+              overflow: "hidden",
+              position: "relative",
+            }}
+          >
+            {tier.popular && (
+              <div style={{
+                background: c.green500,
+                color: c.white,
+                textAlign: "center",
+                padding: "4px 0",
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: 0.5,
+              }}>
+                MOST POPULAR
+              </div>
+            )}
+
+            <div style={{ padding: 24 }}>
+              <h3 style={{ fontSize: 20, fontWeight: 700, color: c.slate800, marginBottom: 4 }}>
+                {tier.name}
+              </h3>
+              <p style={{ fontSize: 13, color: c.slate500, marginBottom: 16 }}>
+                {tier.description}
+              </p>
+              <div style={{ marginBottom: 20 }}>
+                <span style={{ fontSize: 36, fontWeight: 800, color: c.slate900 }}>
+                  {tier.price}
+                </span>
+                <span style={{ fontSize: 14, color: c.slate500 }}>{tier.period}</span>
+                {tier.savings && (
+                  <span style={{
+                    ...badgeBase,
+                    background: c.green100,
+                    color: c.green700,
+                    marginLeft: 8,
+                  }}>
+                    {tier.savings}
+                  </span>
+                )}
+              </div>
+
+              <button
+                onClick={() => handleCheckout(tier)}
+                disabled={tier.disabled || loading === tier.name}
+                style={{
+                  width: "100%",
+                  padding: "12px 0",
+                  borderRadius: 10,
+                  border: tier.disabled ? `1px solid ${c.slate200}` : "none",
+                  background: tier.disabled
+                    ? c.white
+                    : tier.popular
+                    ? c.green600
+                    : c.slate800,
+                  color: tier.disabled ? c.slate400 : c.white,
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: tier.disabled ? "default" : "pointer",
+                  marginBottom: 20,
+                }}
+              >
+                {loading === tier.name ? "Redirecting..." : tier.cta}
+              </button>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {tier.features.map((feat) => (
+                  <div key={feat} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: c.slate600 }}>
+                    <CheckCircle2 size={14} color={c.green500} />
+                    {feat}
+                  </div>
+                ))}
+              </div>
             </div>
-            {plan.sub && <p style={{ textAlign: "center", fontSize: 13, color: c.green600, fontWeight: 500, marginBottom: 4 }}>{plan.sub}</p>}
-            {plan.active && <div style={{ textAlign: "center", marginBottom: 12 }}><span style={{ ...badgeBase, background: c.green100, color: c.green700 }}>Active (Promo)</span></div>}
-            <div style={{ marginTop: 16 }}>
-              {plan.features.map((f, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", fontSize: 14, color: c.slate600 }}><CheckCircle2 size={16} color={c.green500} />{f}</div>
-              ))}
-            </div>
-            {!plan.active && <button style={{ width: "100%", marginTop: 20, padding: "12px", borderRadius: 10, border: "none", background: c.slate100, color: c.slate600, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Current Plan</button>}
-            {plan.active && <p style={{ textAlign: "center", fontSize: 13, color: c.slate500, marginTop: 16 }}>Enjoying free Pro access</p>}
           </div>
         ))}
       </div>
     </div>
   );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TOAST NOTIFICATION
+// ═══════════════════════════════════════════════════════════════════════════
+function Toast({ message, visible, type = "success" }) {
+  const bgMap = { success: c.green600, error: c.rose500, info: c.blue500 };
+  const iconMap = { success: CheckCircle2, error: X, info: Info };
+  const Icon = iconMap[type];
+  return (
+    <div style={{
+      position: "fixed", bottom: visible ? 32 : -80, left: "50%", transform: "translateX(-50%)",
+      background: bgMap[type], color: c.white, padding: "14px 28px", borderRadius: 14,
+      display: "flex", alignItems: "center", gap: 10, fontSize: 14, fontWeight: 600,
+      boxShadow: "0 8px 32px rgba(0,0,0,0.2)", zIndex: 9999,
+      transition: "bottom 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
+      whiteSpace: "nowrap",
+    }}>
+      <Icon size={18} />
+      {message}
+    </div>
+  );
+}
+
+function useToast() {
+  const [toast, setToast] = useState({ message: "", visible: false, type: "success" });
+  const timerRef = useRef(null);
+  const showToast = useCallback((message, type = "success", duration = 3000) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setToast({ message, visible: true, type });
+    timerRef.current = setTimeout(() => setToast(prev => ({ ...prev, visible: false })), duration);
+  }, []);
+  return { toast, showToast };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1904,9 +2882,9 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return React.createElement("div", { style: { padding: 40, textAlign: "center" } },
-        React.createElement("h2", { style: { fontSize: 20, fontWeight: 600, color: "#334155", marginBottom: 8 } }, "Something went wrong"),
-        React.createElement("p", { style: { color: "#64748b", marginBottom: 16 } }, "An error occurred while loading this page."),
-        React.createElement("button", { onClick: () => this.setState({ hasError: false, error: null }), style: { padding: "10px 20px", borderRadius: 8, border: "none", background: "#16a34a", color: "#fff", fontWeight: 600, cursor: "pointer" } }, "Try Again")
+        React.createElement("h2", { style: { fontSize: 20, fontWeight: 600, color: c.slate700, marginBottom: 8 } }, "Something went wrong"),
+        React.createElement("p", { style: { color: c.slate500, marginBottom: 16 } }, "An error occurred while loading this page."),
+        React.createElement("button", { onClick: () => this.setState({ hasError: false, error: null }), style: { padding: "10px 20px", borderRadius: 8, border: "none", background: c.green600, color: c.white, fontWeight: 600, cursor: "pointer" } }, "Try Again")
       );
     }
     return this.props.children;
@@ -1914,10 +2892,681 @@ class ErrorBoundary extends React.Component {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SEASON PLANNER
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SEASON_TEMPLATES = {
+  Soccer: [
+    {
+      name: "Full Season (12 weeks)",
+      weeks: 12,
+      phases: [
+        { name: "Pre-Season", weeks: [1, 2, 3], focus: "Fitness, fundamentals, team bonding", color: c.blue500 },
+        { name: "Early Season", weeks: [4, 5, 6], focus: "Skill development, basic tactics", color: c.green500 },
+        { name: "Mid-Season", weeks: [7, 8, 9], focus: "Tactical depth, set pieces, game situations", color: c.amber500 },
+        { name: "Tournament Prep", weeks: [10, 11, 12], focus: "Match sharpness, mental prep, peak performance", color: c.rose500 },
+      ],
+    },
+    {
+      name: "Short Season (8 weeks)",
+      weeks: 8,
+      phases: [
+        { name: "Foundation", weeks: [1, 2], focus: "Fitness baseline, core skills", color: c.blue500 },
+        { name: "Development", weeks: [3, 4, 5], focus: "Technical growth, small-sided play", color: c.green500 },
+        { name: "Competition", weeks: [6, 7, 8], focus: "Game tactics, pressure situations", color: c.amber500 },
+      ],
+    },
+    {
+      name: "Extended Season (16 weeks)",
+      weeks: 16,
+      phases: [
+        { name: "Pre-Season", weeks: [1, 2, 3, 4], focus: "Conditioning, fundamentals, assessment", color: c.blue500 },
+        { name: "Early Season", weeks: [5, 6, 7, 8], focus: "Technical refinement, build-up play", color: c.green500 },
+        { name: "Mid-Season", weeks: [9, 10, 11, 12], focus: "Tactical systems, positional play", color: c.purple500 },
+        { name: "Late Season", weeks: [13, 14, 15, 16], focus: "Peak form, tournament prep, review", color: c.rose500 },
+      ],
+    },
+  ],
+  Basketball: [
+    {
+      name: "Full Season (12 weeks)",
+      weeks: 12,
+      phases: [
+        { name: "Pre-Season", weeks: [1, 2, 3], focus: "Conditioning, fundamentals, ball handling", color: c.blue500 },
+        { name: "Early Season", weeks: [4, 5, 6], focus: "Shooting form, offensive sets, man defense", color: c.green500 },
+        { name: "Mid-Season", weeks: [7, 8, 9], focus: "Play execution, zone defense, fast break", color: c.amber500 },
+        { name: "Playoffs", weeks: [10, 11, 12], focus: "Scouting adjustments, clutch situations, peak focus", color: c.rose500 },
+      ],
+    },
+  ],
+  Baseball: [
+    {
+      name: "Full Season (12 weeks)",
+      weeks: 12,
+      phases: [
+        { name: "Pre-Season", weeks: [1, 2, 3], focus: "Arm care, hitting fundamentals, fielding basics", color: c.blue500 },
+        { name: "Early Season", weeks: [4, 5, 6], focus: "Live at-bats, defensive positioning, baserunning", color: c.green500 },
+        { name: "Mid-Season", weeks: [7, 8, 9], focus: "Situational hitting, cutoffs/relays, pitch sequences", color: c.amber500 },
+        { name: "Postseason Prep", weeks: [10, 11, 12], focus: "Clutch situations, short game, mental toughness", color: c.rose500 },
+      ],
+    },
+  ],
+  Football: [
+    {
+      name: "Full Season (12 weeks)",
+      weeks: 12,
+      phases: [
+        { name: "Camp", weeks: [1, 2, 3], focus: "Conditioning, install base offense/defense, fundamentals", color: c.blue500 },
+        { name: "Early Season", weeks: [4, 5, 6], focus: "Game plan refinement, special teams, situational", color: c.green500 },
+        { name: "Mid-Season", weeks: [7, 8, 9], focus: "Advanced schemes, opponent-specific adjustments", color: c.amber500 },
+        { name: "Playoff Push", weeks: [10, 11, 12], focus: "Peak execution, two-minute drills, red zone", color: c.rose500 },
+      ],
+    },
+  ],
+};
+
+const PROGRESSIVE_FOCUS = {
+  Soccer: {
+    "Pre-Season": ["fitness", "passing", "dribbling", "first touch", "fun"],
+    "Foundation": ["fitness", "passing", "dribbling", "first touch", "fun"],
+    "Early Season": ["passing", "dribbling", "shooting", "1v1", "first touch"],
+    "Development": ["passing", "dribbling", "shooting", "1v1", "first touch"],
+    "Mid-Season": ["possession", "defending", "transition", "decision making", "shooting"],
+    "Competition": ["possession", "defending", "transition", "decision making"],
+    "Tournament Prep": ["transition", "decision making", "defending", "shooting"],
+    "Late Season": ["transition", "decision making", "defending", "shooting"],
+    "Playoffs": ["transition", "decision making", "defending", "shooting"],
+    "Postseason Prep": ["transition", "decision making", "defending", "shooting"],
+    "Camp": ["fitness", "passing", "dribbling", "fun"],
+    "Playoff Push": ["transition", "decision making", "defending"],
+  },
+  Basketball: {
+    "Pre-Season": ["dribbling", "shooting", "passing", "footwork", "fun"],
+    "Early Season": ["shooting", "passing", "defense", "layups", "rebounding"],
+    "Mid-Season": ["teamwork", "transition", "defense", "shooting"],
+    "Playoffs": ["teamwork", "transition", "defense", "shooting"],
+  },
+  Baseball: {
+    "Pre-Season": ["throwing", "hitting", "fielding", "fun"],
+    "Early Season": ["hitting", "fielding", "pitching", "baserunning"],
+    "Mid-Season": ["situational", "pitching", "hitting", "teamwork"],
+    "Postseason Prep": ["situational", "hitting", "pitching"],
+  },
+  Football: {
+    "Camp": ["passing", "catching", "running", "agility", "fun"],
+    "Early Season": ["passing", "route running", "defense", "teamwork"],
+    "Mid-Season": ["teamwork", "defense", "passing", "blocking"],
+    "Playoff Push": ["teamwork", "defense", "passing", "agility"],
+  },
+};
+
+function SeasonPlannerPage({ sport, setPage, isPro = false }) {
+  const [seasonPlans, setSeasonPlans] = useLocalStorage("seasonPlans", []);
+  const [activePlan, setActivePlan] = useState(null);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [dragIdx, setDragIdx] = useState(null);
+  const [dragOverIdx, setDragOverIdx] = useState(null);
+  const isMobile = useIsMobile();
+
+  const sportTemplates = SEASON_TEMPLATES[sport] || SEASON_TEMPLATES.Soccer;
+  const currentPlan = activePlan
+    ? seasonPlans.find((p) => p.id === activePlan)
+    : null;
+
+  const createFromTemplate = (template) => {
+    const startDate = new Date();
+    const dayOfWeek = startDate.getDay();
+    const daysUntilMonday = dayOfWeek === 0 ? 1 : dayOfWeek === 1 ? 0 : 8 - dayOfWeek;
+    startDate.setDate(startDate.getDate() + daysUntilMonday);
+
+    const weeks = [];
+    for (let i = 0; i < template.weeks; i++) {
+      const weekDate = new Date(startDate);
+      weekDate.setDate(weekDate.getDate() + i * 7);
+      const phase = template.phases.find((p) => p.weeks.includes(i + 1));
+      const focusOptions = PROGRESSIVE_FOCUS[sport]?.[phase?.name] || [];
+
+      weeks.push({
+        id: `w-${Date.now()}-${i}`,
+        weekNumber: i + 1,
+        date: weekDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        phase: phase?.name || "General",
+        phaseColor: phase?.color || c.slate400,
+        focus: focusOptions.slice(0, 2),
+        practices: [
+          { id: `p-${Date.now()}-${i}-1`, title: "", status: "planned", drills: [] },
+        ],
+        completed: false,
+        notes: "",
+      });
+    }
+
+    const newPlan = {
+      id: `sp-${Date.now()}`,
+      name: `${sport} ${template.name}`,
+      sport,
+      template: template.name,
+      createdAt: new Date().toISOString(),
+      weeks,
+    };
+
+    setSeasonPlans((prev) => [...prev, newPlan]);
+    setActivePlan(newPlan.id);
+    setShowTemplates(false);
+  };
+
+  const toggleWeekComplete = (weekId) => {
+    setSeasonPlans((prev) =>
+      prev.map((plan) =>
+        plan.id === activePlan
+          ? {
+              ...plan,
+              weeks: plan.weeks.map((w) =>
+                w.id === weekId ? { ...w, completed: !w.completed } : w
+              ),
+            }
+          : plan
+      )
+    );
+  };
+
+  const updateWeekNotes = (weekId, notes) => {
+    setSeasonPlans((prev) =>
+      prev.map((plan) =>
+        plan.id === activePlan
+          ? {
+              ...plan,
+              weeks: plan.weeks.map((w) =>
+                w.id === weekId ? { ...w, notes } : w
+              ),
+            }
+          : plan
+      )
+    );
+  };
+
+  const handleDragStart = (idx) => setDragIdx(idx);
+  const handleDragOver = (e, idx) => {
+    e.preventDefault();
+    setDragOverIdx(idx);
+  };
+  const handleDrop = (idx) => {
+    if (dragIdx === null || dragIdx === idx) {
+      setDragIdx(null);
+      setDragOverIdx(null);
+      return;
+    }
+    setSeasonPlans((prev) =>
+      prev.map((plan) => {
+        if (plan.id !== activePlan) return plan;
+        const newWeeks = [...plan.weeks];
+        const [moved] = newWeeks.splice(dragIdx, 1);
+        newWeeks.splice(idx, 0, moved);
+        return {
+          ...plan,
+          weeks: newWeeks.map((w, i) => ({ ...w, weekNumber: i + 1 })),
+        };
+      })
+    );
+    setDragIdx(null);
+    setDragOverIdx(null);
+  };
+
+  const deletePlan = (planId) => {
+    setSeasonPlans((prev) => prev.filter((p) => p.id !== planId));
+    if (activePlan === planId) setActivePlan(null);
+  };
+
+  // ── Template Picker ──
+  if (showTemplates) {
+    return (
+      <div>
+        <PageHero
+          title="Choose a Season Template"
+          subtitle={`Pick a starting structure for your ${sport} season. You can customize everything after.`}
+          gradient={sportConfig[sport]?.heroGradient}
+        />
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+          {sportTemplates.map((tmpl, idx) => (
+            <HoverCard key={idx} onClick={() => createFromTemplate(tmpl)} style={{ padding: 0 }}>
+              <div style={{ padding: 20 }}>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: c.slate800, marginBottom: 8 }}>
+                  {tmpl.name}
+                </h3>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+                  {tmpl.phases.map((phase, i) => (
+                    <span key={i} style={{
+                      ...badgeBase,
+                      background: phase.color + "18",
+                      color: phase.color,
+                    }}>
+                      {phase.name} ({phase.weeks.length}w)
+                    </span>
+                  ))}
+                </div>
+                <div style={{ fontSize: 13, color: c.slate500 }}>
+                  {tmpl.phases.map((p) => p.focus).join(" → ")}
+                </div>
+              </div>
+              <div style={{ padding: "12px 20px", background: c.green50, borderTop: `1px solid ${c.slate100}`, display: "flex", alignItems: "center", gap: 6, color: c.green700, fontWeight: 600, fontSize: 13 }}>
+                <Plus size={14} /> Use This Template
+              </div>
+            </HoverCard>
+          ))}
+        </div>
+        <button onClick={() => setShowTemplates(false)} style={{
+          marginTop: 16, padding: "10px 20px", borderRadius: 10,
+          border: `1px solid ${c.slate200}`, background: c.white,
+          color: c.slate600, fontWeight: 600, fontSize: 14, cursor: "pointer",
+        }}>
+          Back
+        </button>
+      </div>
+    );
+  }
+
+  // ── Active Season Plan View ──
+  if (currentPlan) {
+    const completedWeeks = currentPlan.weeks.filter((w) => w.completed).length;
+    const totalWeeks = currentPlan.weeks.length;
+    const progressPct = Math.round((completedWeeks / totalWeeks) * 100);
+    const phases = [...new Set(currentPlan.weeks.map((w) => w.phase))];
+
+    return (
+      <div>
+        <PageHero
+          title={currentPlan.name}
+          subtitle={`${completedWeeks} of ${totalWeeks} weeks completed · ${progressPct}% through the season`}
+          gradient={sportConfig[sport]?.heroGradient}
+          actions={
+            <>
+              <HeroBtn label="Back to Plans" icon={ChevronLeft} onClick={() => setActivePlan(null)} />
+            </>
+          }
+        />
+
+        {/* Progress bar */}
+        <div style={{ background: c.slate100, borderRadius: 8, height: 8, marginBottom: 24, overflow: "hidden" }}>
+          <div style={{
+            width: `${progressPct}%`,
+            height: "100%",
+            background: `linear-gradient(90deg, ${c.green500}, ${c.green400})`,
+            borderRadius: 8,
+            transition: "width 0.3s ease",
+          }} />
+        </div>
+
+        {/* Phase legend */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
+          {phases.map((phase) => {
+            const pw = currentPlan.weeks.find((w) => w.phase === phase);
+            return (
+              <div key={phase} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: c.slate600 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 3, background: pw?.phaseColor || c.slate400 }} />
+                {phase}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Week timeline */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {currentPlan.weeks.map((week, idx) => (
+            <div
+              key={week.id}
+              draggable={!isMobile}
+              onDragStart={() => handleDragStart(idx)}
+              onDragOver={(e) => handleDragOver(e, idx)}
+              onDrop={() => handleDrop(idx)}
+              onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
+              style={{
+                display: "flex",
+                alignItems: "stretch",
+                gap: 0,
+                background: c.white,
+                borderRadius: 12,
+                border: `1px solid ${dragOverIdx === idx ? c.green400 : c.slate200}`,
+                overflow: "hidden",
+                opacity: week.completed ? 0.7 : 1,
+                transition: "all 0.2s",
+              }}
+            >
+              {/* Phase color bar */}
+              <div style={{ width: 5, background: week.phaseColor, flexShrink: 0 }} />
+
+              {/* Drag handle */}
+              {!isMobile && (
+                <div style={{
+                  display: "flex", alignItems: "center", padding: "0 8px",
+                  cursor: "grab", color: c.slate300,
+                }}>
+                  <GripVertical size={16} />
+                </div>
+              )}
+
+              {/* Week content */}
+              <div style={{ flex: 1, padding: "14px 16px", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 8 : 16 }}>
+                {/* Week number + date */}
+                <div style={{ minWidth: 100 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: c.slate800 }}>
+                    Week {week.weekNumber}
+                  </div>
+                  <div style={{ fontSize: 12, color: c.slate400 }}>{week.date}</div>
+                </div>
+
+                {/* Phase badge */}
+                <span style={{
+                  ...badgeBase,
+                  background: week.phaseColor + "18",
+                  color: week.phaseColor,
+                  fontSize: 11,
+                }}>
+                  {week.phase}
+                </span>
+
+                {/* Focus areas */}
+                <div style={{ display: "flex", gap: 4, flexWrap: "wrap", flex: 1 }}>
+                  {week.focus.map((f) => (
+                    <span key={f} style={{
+                      ...badgeBase,
+                      background: c.slate100,
+                      color: c.slate600,
+                      fontSize: 11,
+                    }}>
+                      {f}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Notes input */}
+                <input
+                  type="text"
+                  placeholder="Add notes..."
+                  value={week.notes}
+                  onChange={(e) => updateWeekNotes(week.id, e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    border: `1px solid ${c.slate200}`,
+                    fontSize: 13,
+                    color: c.slate700,
+                    background: c.slate50,
+                    outline: "none",
+                    minWidth: 120,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+
+              {/* Complete toggle */}
+              <button
+                onClick={() => toggleWeekComplete(week.id)}
+                aria-label={week.completed ? "Mark incomplete" : "Mark complete"}
+                style={{
+                  padding: "0 16px",
+                  border: "none",
+                  background: week.completed ? c.green50 : "transparent",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  color: week.completed ? c.green600 : c.slate300,
+                  transition: "all 0.15s",
+                }}
+              >
+                {week.completed
+                  ? <CheckCircle2 size={22} />
+                  : <Circle size={22} />}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Season Plans List (default view) ──
+  const myPlans = seasonPlans.filter((p) => p.sport === sport);
+
+  return (
+    <div>
+      <PageHero
+        title="Season Planner"
+        subtitle="Map out your entire season with progressive skill development. Start from a template and customize each week."
+        gradient={sportConfig[sport]?.heroGradient}
+        actions={
+          <HeroBtn label="New Season Plan" primary icon={Plus} onClick={() => setShowTemplates(true)} />
+        }
+      />
+
+      {myPlans.length === 0 ? (
+        <div style={{
+          textAlign: "center", padding: "60px 20px",
+          background: c.white, borderRadius: 16, border: `1px solid ${c.slate200}`,
+        }}>
+          <CalendarDays size={48} color={c.slate300} style={{ marginBottom: 16 }} />
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: c.slate800, marginBottom: 8 }}>
+            No season plans yet
+          </h3>
+          <p style={{ fontSize: 14, color: c.slate500, marginBottom: 20 }}>
+            Create your first season plan from a template to get started.
+          </p>
+          <button onClick={() => setShowTemplates(true)} style={{
+            padding: "10px 24px", borderRadius: 10, border: "none",
+            background: c.green600, color: c.white, fontWeight: 600,
+            fontSize: 14, cursor: "pointer",
+          }}>
+            Choose a Template
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }}>
+          {myPlans.map((plan) => {
+            const done = plan.weeks.filter((w) => w.completed).length;
+            const total = plan.weeks.length;
+            const pct = Math.round((done / total) * 100);
+            return (
+              <HoverCard key={plan.id} style={{ padding: 0 }}>
+                <div style={{ padding: 20 }} onClick={() => setActivePlan(plan.id)}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, color: c.slate800 }}>
+                      {plan.name}
+                    </h3>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deletePlan(plan.id); }}
+                      aria-label="Delete plan"
+                      style={{
+                        padding: 4, border: "none", background: "transparent",
+                        cursor: "pointer", color: c.slate400,
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 13, color: c.slate500, marginBottom: 12 }}>
+                    {total} weeks · {done} completed · {pct}% done
+                  </div>
+                  <div style={{ background: c.slate100, borderRadius: 6, height: 6, overflow: "hidden" }}>
+                    <div style={{
+                      width: `${pct}%`, height: "100%",
+                      background: c.green500, borderRadius: 6,
+                    }} />
+                  </div>
+                </div>
+              </HoverCard>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LANDING PAGE
+// ═══════════════════════════════════════════════════════════════════════════
+function LandingPage({ onGetStarted }) {
+  const isMobile = useIsMobile();
+  const totalDrills = Object.values(drillsBySport).reduce((sum, d) => sum + d.length, 0);
+
+  const features = [
+    { icon: Zap, title: "4 Sports, 210+ Drills", desc: "Soccer, Basketball, Baseball, and Football — each with a curated library of age-appropriate drills with coaching points and diagrams." },
+    { icon: Sparkles, title: "Smart Plan Generator", desc: "Tell us the age group, session length, and focus — our engine builds a phase-structured practice plan in seconds." },
+    { icon: ClipboardList, title: "Practice History", desc: "Log sessions, track attendance, rate practices, and build a record of your coaching journey over the season." },
+    { icon: Users, title: "Team Management", desc: "Organize rosters, manage multiple teams, and tailor plans to your specific group size and skill level." },
+  ];
+
+  const steps = [
+    { num: "1", title: "Set up your team", desc: "Choose your sport, age group, and player count." },
+    { num: "2", title: "Generate a plan", desc: "Pick focus areas and duration — the engine handles the rest." },
+    { num: "3", title: "Coach with confidence", desc: "Print, export, or pull it up on your phone at practice." },
+  ];
+
+  const pricingTiers = [
+    { name: "Free", price: "$0", period: "/month", features: ["3 practice plans per month", "Full drill library", "Drill diagrams", "1 team"], cta: "Get Started Free", popular: false },
+    { name: "Pro", price: "$49.99", period: "/year", sub: "$4.17/month · Save $21.89/yr", features: ["Unlimited practice plans", "Full drill library", "Animated drill diagrams", "Unlimited teams", "PDF export", "Shareable plan links", "Priority support"], cta: "Start Free Trial", popular: true },
+  ];
+
+  return (
+    <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: c.slate800, overflowX: "hidden" }}>
+      {/* Nav */}
+      <nav style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: isMobile ? "16px 20px" : "16px 48px", background: c.white, borderBottom: `1px solid ${c.slate100}`, position: "sticky", top: 0, zIndex: 100 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 800, fontSize: 16 }}>W</div>
+          <span style={{ fontSize: 22, fontWeight: 700, color: c.slate800, letterSpacing: -0.5 }}>Whistle</span>
+        </div>
+        <button onClick={onGetStarted} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`, color: c.white, fontWeight: 600, fontSize: 14, cursor: "pointer", boxShadow: "0 2px 8px rgba(22,163,74,0.3)" }}>
+          Get Started
+        </button>
+      </nav>
+
+      {/* Hero */}
+      <section style={{ background: `linear-gradient(135deg, ${c.green900} 0%, ${c.green700} 40%, ${c.emerald600} 100%)`, padding: isMobile ? "60px 20px" : "100px 48px", color: c.white, textAlign: "center", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -80, right: -40, width: 300, height: 300, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+        <div style={{ position: "absolute", bottom: -100, left: -60, width: 400, height: 400, borderRadius: "50%", background: "rgba(255,255,255,0.03)" }} />
+        <div style={{ maxWidth: 720, margin: "0 auto", position: "relative" }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 24 }}>
+            {Object.values(sportConfig).map((s, i) => (
+              <span key={i} style={{ fontSize: isMobile ? 28 : 36 }}>{s.emoji}</span>
+            ))}
+          </div>
+          <h1 style={{ fontSize: isMobile ? 32 : 52, fontWeight: 800, lineHeight: 1.1, marginBottom: 20, letterSpacing: -1 }}>
+            Practice plans that<br />make coaching easy
+          </h1>
+          <p style={{ fontSize: isMobile ? 16 : 20, opacity: 0.85, lineHeight: 1.6, marginBottom: 36, maxWidth: 560, margin: "0 auto 36px" }}>
+            {totalDrills}+ drills across 4 sports. Generate age-appropriate, phase-structured practice plans in seconds — not hours.
+          </p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <button onClick={onGetStarted} style={{ padding: "14px 32px", borderRadius: 12, border: "none", background: c.white, color: c.green700, fontWeight: 700, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.15)" }}>
+              <Sparkles size={18} /> Get Started Free
+            </button>
+            <button onClick={onGetStarted} style={{ padding: "14px 32px", borderRadius: 12, border: "2px solid rgba(255,255,255,0.4)", background: "rgba(255,255,255,0.1)", color: c.white, fontWeight: 600, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+              <Play size={18} /> See How It Works
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section style={{ padding: isMobile ? "60px 20px" : "100px 48px", maxWidth: 1100, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <h2 style={{ fontSize: isMobile ? 26 : 36, fontWeight: 800, color: c.slate900, marginBottom: 12 }}>Everything a youth coach needs</h2>
+          <p style={{ fontSize: 16, color: c.slate500, maxWidth: 520, margin: "0 auto" }}>From drill ideas to full practice plans — Whistle handles the prep so you can focus on coaching.</p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 24 }}>
+          {features.map((f, i) => {
+            const Icon = f.icon;
+            return (
+              <div key={i} style={{ padding: "28px 28px", borderRadius: 16, border: `1px solid ${c.slate200}`, background: c.white, transition: "box-shadow 0.2s" }}>
+                <div style={{ width: 48, height: 48, borderRadius: 12, background: c.green50, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                  <Icon size={22} color={c.green600} />
+                </div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: c.slate800, marginBottom: 8 }}>{f.title}</h3>
+                <p style={{ fontSize: 14, color: c.slate500, lineHeight: 1.6 }}>{f.desc}</p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section style={{ padding: isMobile ? "60px 20px" : "80px 48px", background: c.slate50 }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
+          <h2 style={{ fontSize: isMobile ? 26 : 36, fontWeight: 800, color: c.slate900, marginBottom: 48 }}>Ready in 3 steps</h2>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 32 }}>
+            {steps.map((s, i) => (
+              <div key={i} style={{ textAlign: "center" }}>
+                <div style={{ width: 56, height: 56, borderRadius: "50%", background: `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`, display: "flex", alignItems: "center", justifyContent: "center", color: c.white, fontSize: 24, fontWeight: 800, margin: "0 auto 16px" }}>{s.num}</div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: c.slate800, marginBottom: 8 }}>{s.title}</h3>
+                <p style={{ fontSize: 14, color: c.slate500, lineHeight: 1.6 }}>{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section style={{ padding: isMobile ? "60px 20px" : "100px 48px", maxWidth: 900, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <h2 style={{ fontSize: isMobile ? 26 : 36, fontWeight: 800, color: c.slate900, marginBottom: 12 }}>Simple pricing</h2>
+          <p style={{ fontSize: 16, color: c.slate500 }}>Start free. Upgrade when you're ready.</p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 24 }}>
+          {pricingTiers.map(tier => (
+            <div key={tier.name} style={{ ...cardStyle, padding: "36px 32px", position: "relative", border: tier.popular ? `2px solid ${c.green500}` : `1px solid ${c.slate200}` }}>
+              {tier.popular && <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", ...badgeBase, background: c.green600, color: c.white, fontSize: 11 }}>Most Popular</div>}
+              <h3 style={{ fontSize: 20, fontWeight: 700, color: c.slate800, textAlign: "center", marginBottom: 8 }}>{tier.name}</h3>
+              <div style={{ textAlign: "center", marginBottom: 8 }}>
+                <span style={{ fontSize: 44, fontWeight: 800, color: c.slate900 }}>{tier.price}</span>
+                <span style={{ fontSize: 14, color: c.slate500 }}>{tier.period}</span>
+              </div>
+              {tier.sub && <p style={{ textAlign: "center", fontSize: 13, color: c.green600, fontWeight: 500, marginBottom: 8 }}>{tier.sub}</p>}
+              <div style={{ marginTop: 20 }}>
+                {tier.features.map((f, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", fontSize: 14, color: c.slate600 }}>
+                    <CheckCircle2 size={16} color={c.green500} />{f}
+                  </div>
+                ))}
+              </div>
+              <button onClick={onGetStarted} style={{ width: "100%", marginTop: 24, padding: "14px", borderRadius: 12, border: "none", background: tier.popular ? `linear-gradient(135deg, ${c.green500}, ${c.emerald600})` : c.slate100, color: tier.popular ? c.white : c.slate700, fontWeight: 700, fontSize: 15, cursor: "pointer", boxShadow: tier.popular ? "0 2px 8px rgba(22,163,74,0.3)" : "none" }}>
+                {tier.cta}
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section style={{ padding: isMobile ? "60px 20px" : "80px 48px", background: `linear-gradient(135deg, ${c.green800} 0%, ${c.emerald600} 100%)`, textAlign: "center", color: c.white }}>
+        <h2 style={{ fontSize: isMobile ? 26 : 36, fontWeight: 800, marginBottom: 12 }}>Ready to level up your practices?</h2>
+        <p style={{ fontSize: 16, opacity: 0.85, marginBottom: 32, maxWidth: 480, margin: "0 auto 32px" }}>Join coaches who spend less time planning and more time coaching.</p>
+        <button onClick={onGetStarted} style={{ padding: "16px 40px", borderRadius: 14, border: "none", background: c.white, color: c.green700, fontWeight: 700, fontSize: 17, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 10, boxShadow: "0 4px 16px rgba(0,0,0,0.15)" }}>
+          <Sparkles size={20} /> Get Started Free
+        </button>
+      </section>
+
+      {/* Footer */}
+      <footer style={{ padding: "32px 48px", textAlign: "center", color: c.slate400, fontSize: 13, background: c.slate900 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 12 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 800, fontSize: 12 }}>W</div>
+          <span style={{ fontSize: 16, fontWeight: 700, color: c.slate300 }}>Whistle</span>
+        </div>
+        <p>Built for youth coaches, by coaches.</p>
+      </footer>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN APP
 // ═══════════════════════════════════════════════════════════════════════════
 export default function WhistleApp() {
   const isMobile = useIsMobile();
+  const isOnline = useOnlineStatus();
+  const isPro = useProAccess();
+  const { deferredPrompt, isInstalled, promptInstall } = useInstallPrompt();
+  const [showInstallBanner, setShowInstallBanner] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useLocalStorage("isAuthenticated", false);
   const [page, setPage] = useState("dashboard");
   const [sport, setSport] = useLocalStorage("selectedSport", "Soccer");
   const [sportOpen, setSportOpen] = useState(false);
@@ -1926,8 +3575,19 @@ export default function WhistleApp() {
   const [generatedPlan, setGeneratedPlan] = useState(null);
   const [planConfig, setPlanConfig] = useState(null);
   const [planKey, setPlanKey] = useState(0);
+  const [timerPlan, setTimerPlan] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { toast, showToast } = useToast();
   const mainRef = useRef(null);
+
+  // Register service worker for PWA offline support
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/service-worker.js").catch(() => {
+        // Service worker not found — expected during development
+      });
+    }
+  }, []);
 
   // Focus management: scroll to top and focus main content on page change
   useEffect(() => {
@@ -1959,6 +3619,7 @@ export default function WhistleApp() {
       planData: generatedPlan,
     };
     setPlans([...plans, newPlan]);
+    showToast("Practice plan saved successfully!");
   };
 
   const handleLogPractice = (practiceData) => {
@@ -1973,18 +3634,29 @@ export default function WhistleApp() {
     }
   };
 
+  const handleStartTimer = (plan) => {
+    setTimerPlan(plan);
+    setPage("timer");
+  };
+
   const pages = {
     dashboard: <DashboardPage sport={sport} setPage={setPage} />,
     generate: <GeneratePlanPage sport={sport} setPage={setPage} onPlanGenerated={handlePlanGenerated} />,
-    "plan-result": generatedPlan && planConfig ? <PlanResultPage key={planKey} plan={generatedPlan} config={planConfig} sport={sport} setPage={setPage} onRegenerate={handleRegenerate} onSavePlan={handleSavePlan} onLogPractice={handleLogPractice} /> : null,
+    "plan-result": generatedPlan && planConfig ? <PlanResultPage key={planKey} plan={generatedPlan} config={planConfig} sport={sport} setPage={setPage} onRegenerate={handleRegenerate} onSavePlan={handleSavePlan} onLogPractice={handleLogPractice} onStartTimer={handleStartTimer} isPro={isPro} /> : null,
+    "timer": timerPlan && planConfig ? <PracticeTimer plan={timerPlan} config={planConfig} sport={sport} onExit={() => setPage("plan-result")} /> : null,
     plans: <PlansPage sport={sport} setPage={setPage} />,
     drills: <DrillsPage sport={sport} setPage={setPage} setSelectedDrill={setSelectedDrill} />,
     "drill-detail": <DrillDetailPage drill={selectedDrill} sport={sport} setPage={setPage} />,
     teams: <TeamsPage sport={sport} setPage={setPage} setSelectedTeam={setSelectedTeam} />,
     "team-detail": <TeamDetailPage team={selectedTeam} sport={sport} setPage={setPage} />,
     history: <HistoryPage sport={sport} />,
-    pricing: <PricingPage sport={sport} />,
+    season: <SeasonPlannerPage sport={sport} setPage={setPage} isPro={isPro} />,
+    pricing: <PricingPagePro sport={sport} />,
   };
+
+  if (!isAuthenticated) {
+    return <LandingPage onGetStarted={() => setIsAuthenticated(true)} />;
+  }
 
   return (
     <>
@@ -1999,8 +3671,120 @@ export default function WhistleApp() {
           outline-offset: 2px;
         }
         *:focus { outline: none; }
+        * { box-sizing: border-box; }
+
         @media (max-width: 768px) {
           body { margin: 0; padding: 0; }
+
+          /* Touch-friendly tap targets */
+          button, [role="button"], select, input {
+            min-height: 44px;
+            min-width: 44px;
+          }
+
+          /* Stacking grids */
+          .whistle-grid-4, .whistle-grid-3, .whistle-grid-2 {
+            grid-template-columns: 1fr !important;
+          }
+
+          /* Card layouts */
+          .whistle-card-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          /* Drill cards stack */
+          .whistle-drill-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          /* Hero sections */
+          .whistle-hero {
+            padding: 24px 20px !important;
+            border-radius: 14px !important;
+          }
+          .whistle-hero h1 {
+            font-size: 22px !important;
+          }
+
+          /* Plan result buttons wrap */
+          .whistle-plan-actions {
+            flex-direction: column !important;
+          }
+          .whistle-plan-actions button {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+
+          /* Filter bar stacks */
+          .whistle-filter-bar {
+            flex-direction: column !important;
+          }
+          .whistle-filter-bar select {
+            width: 100% !important;
+          }
+
+          /* Drill detail 2-column to 1-column */
+          .whistle-drill-detail-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          /* Team roster table */
+          .whistle-roster-grid {
+            grid-template-columns: 40px 1fr 70px 60px !important;
+            gap: 6px !important;
+            font-size: 13px !important;
+          }
+
+          /* Step indicator wraps */
+          .whistle-step-indicator {
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+          }
+          .whistle-step-connector {
+            display: none !important;
+          }
+
+          /* Wizard cards stack */
+          .whistle-wizard-cards {
+            flex-direction: column !important;
+          }
+
+          /* Focus grid */
+          .whistle-focus-grid {
+            grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)) !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          button, [role="button"] {
+            font-size: 13px !important;
+          }
+          .whistle-hero h1 {
+            font-size: 20px !important;
+          }
+          .whistle-hero p {
+            font-size: 13px !important;
+          }
+        }
+
+        /* Print styles */
+        @media print {
+          body { margin: 0; padding: 0; background: white; }
+          .whistle-sidebar, .whistle-mobile-header, .whistle-overlay {
+            display: none !important;
+          }
+          main {
+            margin-left: 0 !important;
+            padding: 20px !important;
+          }
+          .whistle-hero {
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          button { display: none !important; }
+          @page { margin: 0.5in; }
         }
       `}</style>
       <div style={{ display: "flex", minHeight: "100vh", background: c.slate50, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}
@@ -2009,7 +3793,7 @@ export default function WhistleApp() {
           if (isMobile && sidebarOpen) setSidebarOpen(false);
         }}>
         <Sidebar page={page} setPage={setPage} sport={sport} setSport={setSport} sportOpen={sportOpen} setSportOpen={setSportOpen} isMobile={isMobile} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-        {isMobile && sidebarOpen && <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.3)", zIndex: 999, display: sidebarOpen ? "block" : "none" }} />}
+        {isMobile && sidebarOpen && <div className="whistle-overlay" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.3)", zIndex: 999, display: sidebarOpen ? "block" : "none" }} />}
         <main ref={mainRef} tabIndex={-1} role="main" aria-label="Page content" style={{
           marginLeft: isMobile ? 0 : 240,
           flex: 1,
@@ -2021,7 +3805,7 @@ export default function WhistleApp() {
           overflow: "hidden"
         }}>
           {isMobile && (
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, paddingTop: 4 }}>
+            <div className="whistle-mobile-header" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, paddingTop: 4 }}>
               <button onClick={() => setSidebarOpen(!sidebarOpen)} aria-label={sidebarOpen ? "Close menu" : "Open menu"} aria-expanded={sidebarOpen} style={{ padding: "8px", borderRadius: 8, border: `1px solid ${c.slate200}`, background: c.white, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 44, minWidth: 44 }}>
                 {sidebarOpen ? <X size={20} color={c.slate800} /> : <Menu size={20} color={c.slate800} />}
               </button>
@@ -2030,6 +3814,9 @@ export default function WhistleApp() {
           )}
           <ErrorBoundary key={page}>{pages[page]}</ErrorBoundary>
         </main>
+        <Toast message={toast.message} visible={toast.visible} type={toast.type} />
+        <OfflineIndicator isOnline={isOnline} />
+        {showInstallBanner && !isInstalled && <InstallBanner deferredPrompt={deferredPrompt} promptInstall={promptInstall} onDismiss={() => setShowInstallBanner(false)} />}
       </div>
     </>
   );
