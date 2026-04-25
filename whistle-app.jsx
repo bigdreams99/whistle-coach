@@ -1368,7 +1368,7 @@ function Breadcrumb({ items }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // SIDEBAR
 // ═══════════════════════════════════════════════════════════════════════════
-function Sidebar({ page, setPage, sport, setSport, sportOpen, setSportOpen, isMobile, sidebarOpen, setSidebarOpen }) {
+function Sidebar({ page, setPage, sport, setSport, sportOpen, setSportOpen, isMobile, sidebarOpen, setSidebarOpen, isPro }) {
   const navItems = [
     { key: "dashboard", label: "Dashboard", icon: Home },
     { key: "generate", label: "Generate Plan", icon: Sparkles },
@@ -1442,6 +1442,7 @@ function Sidebar({ page, setPage, sport, setSport, sportOpen, setSportOpen, isMo
                 fontSize: 14, fontWeight: isGenerate || active ? 600 : 500, marginBottom: 2, transition: "all 0.15s",
               }}>
               <Icon size={18} />{item.label}
+              {item.key === "season" && !isPro && <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: c.amber100, color: c.amber700 }}>PRO</span>}
             </button>
           );
         })}
@@ -1451,7 +1452,7 @@ function Sidebar({ page, setPage, sport, setSport, sportOpen, setSportOpen, isMo
         <div style={{ width: 34, height: 34, borderRadius: "50%", background: c.green100, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: c.green700 }}>DC</div>
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, color: c.slate700 }}>Daniel</div>
-          <div style={{ fontSize: 11, color: c.slate500 }}>Pro Plan</div>
+          <div style={{ fontSize: 11, color: isPro ? c.green600 : c.slate500, fontWeight: isPro ? 600 : 400 }}>{isPro ? "Pro Plan" : "Free Plan"}</div>
         </div>
       </div>
     </aside>
@@ -1571,7 +1572,7 @@ function DashboardPage({ sport, setPage }) {
 }
 
 // ─── GENERATE PLAN PAGE (CoachPlan wizard integrated into Whistle shell) ─
-function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
+function GeneratePlanPage({ sport, setPage, onPlanGenerated, isPro = false, usage }) {
   const [step, setStep] = useState(0);
   const [teamsData] = useLocalStorage("teams", defaultTeamsData);
   const [config, setConfig] = useState({
@@ -1600,8 +1601,12 @@ function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
     return true;
   };
 
+  const canGenerate = isPro || (usage && usage.canGeneratePlan);
+
   const handleGenerate = () => {
+    if (!canGenerate) return;
     const plan = generatePlan(config, sport);
+    if (usage && !isPro) usage.trackPlanGenerated();
     onPlanGenerated(plan, config);
   };
 
@@ -1620,6 +1625,11 @@ function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
         title={`${cfg.emoji} Generate Training Plan`}
         subtitle="Create an age-appropriate, phase-structured practice plan in seconds"
       />
+
+      {/* Usage limit banner for free users */}
+      {!isPro && usage && (
+        <UsageLimitBanner plansRemaining={usage.plansRemaining} plansGenerated={usage.plansGenerated} setPage={setPage} />
+      )}
 
       {/* Sport drill count indicator */}
       {sport !== "Soccer" && (
@@ -1783,16 +1793,28 @@ function GeneratePlanPage({ sport, setPage, onPlanGenerated }) {
               display: "flex", alignItems: "center", gap: 6,
             }}><ChevronLeft size={16} /> Back</button>
           )}
-          <button onClick={() => step === 2 ? handleGenerate() : setStep(s => s + 1)}
+          <button onClick={() => {
+              if (step === 2 && !canGenerate) {
+                setPage("pricing");
+                return;
+              }
+              step === 2 ? handleGenerate() : setStep(s => s + 1);
+            }}
             disabled={!canProceed()}
             style={{
               padding: "12px 28px", borderRadius: 12, border: "none",
-              background: canProceed() ? `linear-gradient(135deg, ${c.green500}, ${c.emerald600})` : c.slate200,
+              background: canProceed()
+                ? (step === 2 && !canGenerate)
+                  ? c.amber500
+                  : `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`
+                : c.slate200,
               color: canProceed() ? c.white : c.slate400,
               fontWeight: 600, fontSize: 14, cursor: canProceed() ? "pointer" : "not-allowed",
               display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s",
             }}>
-            {step === 2 ? <><Sparkles size={16} /> Generate Plan</> : <>Continue <ChevronRight size={16} /></>}
+            {step === 2
+              ? (canGenerate ? <><Sparkles size={16} /> Generate Plan</> : <><Sparkles size={16} /> Upgrade to Generate</>)
+              : <>Continue <ChevronRight size={16} /></>}
           </button>
         </div>
       </div>
@@ -2155,8 +2177,11 @@ function PlanResultPage({ plan: initialPlan, config, sport = "Soccer", setPage, 
             <button onClick={() => { if (onSavePlan) onSavePlan(planTitle); setSaved(true); }} aria-label={saved ? "Plan saved" : "Save plan"} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: saved ? c.green700 : `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`, color: c.white, fontWeight: 600, fontSize: 13, cursor: saved ? "default" : "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: saved ? "none" : "0 2px 8px rgba(22,163,74,0.3)", transition: "all 0.3s ease" }}>
               <CheckCircle2 size={15} /> {saved ? "Plan Saved!" : "Save Plan"}
             </button>
-            <button onClick={() => handlePrintOrExport(plan, config, sport, ageInfo)} aria-label="Export as PDF" style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-              <Download size={15} /> Export PDF
+            <button onClick={() => {
+              if (!isPro) { alert("PDF export is a Pro feature. Upgrade to unlock it!"); return; }
+              handlePrintOrExport(plan, config, sport, ageInfo);
+            }} aria-label="Export as PDF" style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${isPro ? c.slate200 : c.amber200}`, background: isPro ? c.white : "#fffbeb", color: isPro ? c.slate600 : c.amber700, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              <Download size={15} /> Export PDF {!isPro && <span style={{ ...badgeBase, background: c.amber100, color: c.amber700, fontSize: 10, padding: "2px 6px" }}>PRO</span>}
             </button>
             <button onClick={() => handlePrintOrExport(plan, config, sport, ageInfo)} aria-label="Print plan" style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <Printer size={15} /> Print
@@ -2520,14 +2545,33 @@ function PlansPage({ sport, setPage }) {
 }
 
 // ─── Teams Page ─────────────────────────────────────────────────────────
-function TeamsPage({ sport, setPage, setSelectedTeam }) {
+function TeamsPage({ sport, setPage, setSelectedTeam, isPro = false }) {
   const [teams] = useLocalStorage("teams", defaultTeamsData);
+  const canCreateTeam = isPro || teams.length < FREE_LIMITS.maxTeams;
   return (
     <div>
       <PageHero gradient={sportConfig[sport].heroGradient} title={`${sportConfig[sport].emoji} My Teams`}
         subtitle="Manage your teams and rosters"
-        actions={<HeroBtn label="Create Team" primary icon={Plus} onClick={() => alert("Team creation coming soon!")} />}
+        actions={<HeroBtn label={canCreateTeam ? "Create Team" : "Upgrade for More Teams"} primary icon={canCreateTeam ? Plus : Sparkles} onClick={() => {
+          if (!canCreateTeam) { setPage("pricing"); return; }
+          alert("Team creation coming soon!");
+        }} />}
       />
+      {!isPro && teams.length >= FREE_LIMITS.maxTeams && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "14px 20px", borderRadius: 12, marginBottom: 16,
+          background: "#fffbeb", border: "1px solid #fed7aa",
+        }}>
+          <Info size={18} color="#d97706" style={{ flexShrink: 0 }} />
+          <p style={{ fontSize: 13, color: "#92400e", lineHeight: 1.5, margin: 0 }}>
+            Free accounts are limited to {FREE_LIMITS.maxTeams} team.{" "}
+            <span onClick={() => setPage("pricing")} style={{ fontWeight: 700, cursor: "pointer", textDecoration: "underline" }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setPage("pricing"); }}>
+              Upgrade to Pro for unlimited teams
+            </span>
+          </p>
+        </div>
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
         {teams.map(team => (
           <HoverCard key={team.id} onClick={() => { setSelectedTeam(team); setPage("team-detail"); }}>
@@ -2669,35 +2713,28 @@ const PRICING_TIERS = [
     price: "$0",
     period: "forever",
     description: "Perfect for getting started",
-    features: PRO_FEATURES.filter((f) => f.free).map((f) => f.name),
+    features: ["3 practice plans per month", "Full drill library", "Drill diagrams", "1 team"],
     cta: "Current Plan",
     disabled: true,
     stripePriceId: null,
   },
   {
     name: "Pro",
-    price: "$8",
-    period: "/month",
+    price: "$49.99",
+    period: "/year",
     description: "Everything you need to run a great season",
+    sub: "$4.17/month",
     features: PRO_FEATURES.map((f) => f.name),
     cta: "Start Free Trial",
     popular: true,
-    stripePriceId: "price_YOUR_MONTHLY_PRICE_ID",
-  },
-  {
-    name: "Pro Annual",
-    price: "$60",
-    period: "/year",
-    description: "Save 37% with annual billing",
-    features: PRO_FEATURES.map((f) => f.name),
-    cta: "Start Free Trial",
-    stripePriceId: "price_YOUR_ANNUAL_PRICE_ID",
-    savings: "Save $36/yr",
+    stripePriceId: "price_pro_annual", // Replace with real Stripe price ID
+    trial: 14,
   },
 ];
 
 function useProAccess() {
   const [isPro, setIsPro] = useLocalStorage("wc_isPro", false);
+  const [email] = useLocalStorage("userEmail", "");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -2705,17 +2742,182 @@ function useProAccess() {
       setIsPro(true);
       window.history.replaceState({}, "", window.location.pathname);
     }
+    if (params.get("checkout") === "cancel") {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
   }, []);
 
-  return isPro;
+  // Periodically verify Pro status against Stripe (on load, once per session)
+  useEffect(() => {
+    if (!email) return;
+    const lastCheck = sessionStorage.getItem("wc_proCheckDone");
+    if (lastCheck) return; // Only check once per browser session
+
+    fetch(`/api/status?email=${encodeURIComponent(email)}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data) {
+          setIsPro(data.isPro);
+          sessionStorage.setItem("wc_proCheckDone", "1");
+        }
+      })
+      .catch(() => {
+        // Silently fail — keep localStorage value
+      });
+  }, [email]);
+
+  return { isPro, setIsPro };
 }
 
-function PricingPagePro({ sport }) {
+// ─── Usage Tracking (Free Tier Limits) ──────────────────────────────────
+const FREE_LIMITS = {
+  plansPerMonth: 3,
+  maxTeams: 1,
+};
+
+function useUsageTracking() {
+  const [usage, setUsage] = useLocalStorage("usageTracking", {
+    plansGenerated: 0,
+    monthKey: "",
+  });
+
+  const currentMonthKey = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+
+  // Reset counter if month changed
+  const getUsage = () => {
+    const mk = currentMonthKey();
+    if (usage.monthKey !== mk) {
+      const reset = { plansGenerated: 0, monthKey: mk };
+      setUsage(reset);
+      return reset;
+    }
+    return usage;
+  };
+
+  const trackPlanGenerated = () => {
+    const mk = currentMonthKey();
+    setUsage((prev) => ({
+      plansGenerated: (prev.monthKey === mk ? prev.plansGenerated : 0) + 1,
+      monthKey: mk,
+    }));
+  };
+
+  const u = getUsage();
+  return {
+    plansGenerated: u.plansGenerated,
+    plansRemaining: Math.max(0, FREE_LIMITS.plansPerMonth - u.plansGenerated),
+    canGeneratePlan: u.plansGenerated < FREE_LIMITS.plansPerMonth,
+    maxTeams: FREE_LIMITS.maxTeams,
+    trackPlanGenerated,
+  };
+}
+
+// ─── Pro Gate Component ─────────────────────────────────────────────────
+function ProGate({ children, isPro, feature, setPage }) {
+  if (isPro) return children;
+
+  return (
+    <div style={{
+      position: "relative",
+      borderRadius: 16,
+      overflow: "hidden",
+    }}>
+      <div style={{ filter: "blur(3px)", opacity: 0.5, pointerEvents: "none" }}>
+        {children}
+      </div>
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(255,255,255,0.85)",
+        backdropFilter: "blur(4px)",
+        borderRadius: 16,
+        padding: 32,
+        textAlign: "center",
+      }}>
+        <div style={{
+          width: 56, height: 56, borderRadius: 16,
+          background: `linear-gradient(135deg, ${c.green100}, ${c.emerald100})`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          marginBottom: 16,
+        }}>
+          <Sparkles size={28} color={c.green600} />
+        </div>
+        <h3 style={{ fontSize: 20, fontWeight: 700, color: c.slate800, marginBottom: 8 }}>
+          {feature} is a Pro Feature
+        </h3>
+        <p style={{ fontSize: 14, color: c.slate500, marginBottom: 20, maxWidth: 320, lineHeight: 1.6 }}>
+          Upgrade to Whistle Pro to unlock {feature.toLowerCase()}, unlimited plans, PDF export, and more.
+        </p>
+        <button
+          onClick={() => setPage("pricing")}
+          style={{
+            padding: "12px 28px", borderRadius: 12, border: "none",
+            background: `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`,
+            color: c.white, fontWeight: 700, fontSize: 14, cursor: "pointer",
+            boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+          }}
+        >
+          Upgrade to Pro — $49.99/year
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Usage Limit Banner ─────────────────────────────────────────────────
+function UsageLimitBanner({ plansRemaining, plansGenerated, setPage }) {
+  if (plansRemaining > 1) return null;
+
+  const isAtLimit = plansRemaining === 0;
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 12,
+      padding: "14px 20px", borderRadius: 12, marginBottom: 16,
+      background: isAtLimit ? "#fef2f2" : "#fffbeb",
+      border: `1px solid ${isAtLimit ? "#fecaca" : "#fed7aa"}`,
+    }}>
+      <Info size={18} color={isAtLimit ? "#dc2626" : "#d97706"} style={{ flexShrink: 0 }} />
+      <p style={{ fontSize: 13, color: isAtLimit ? "#991b1b" : "#92400e", lineHeight: 1.5, margin: 0, flex: 1 }}>
+        {isAtLimit
+          ? `You've used all ${FREE_LIMITS.plansPerMonth} free plans this month.`
+          : `${plansRemaining} free plan${plansRemaining === 1 ? "" : "s"} remaining this month.`}
+        {" "}
+        <span
+          onClick={() => setPage("pricing")}
+          style={{ fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setPage("pricing"); }}
+        >
+          Upgrade to Pro for unlimited plans
+        </span>
+      </p>
+    </div>
+  );
+}
+
+function PricingPagePro({ sport, setPage }) {
   const [loading, setLoading] = useState(null);
+  const [email, setEmail] = useLocalStorage("userEmail", "");
+  const [emailInput, setEmailInput] = useState(email);
+  const [error, setError] = useState("");
   const isMobile = useIsMobile();
 
   const handleCheckout = async (tier) => {
     if (!tier.stripePriceId) return;
+    if (!emailInput || !emailInput.includes("@")) {
+      setError("Please enter a valid email to continue.");
+      return;
+    }
+    setEmail(emailInput);
+    setError("");
     setLoading(tier.name);
 
     try {
@@ -2724,14 +2926,17 @@ function PricingPagePro({ sport }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           priceId: tier.stripePriceId,
+          email: emailInput,
           successUrl: window.location.origin + "?checkout=success",
           cancelUrl: window.location.origin + "?checkout=cancel",
         }),
       });
+      if (!response.ok) throw new Error("Checkout session failed");
       const { sessionUrl } = await response.json();
       window.location.href = sessionUrl;
     } catch (err) {
       console.error("Checkout error:", err);
+      setError("Something went wrong. Please try again.");
       setLoading(null);
     }
   };
@@ -2744,11 +2949,36 @@ function PricingPagePro({ sport }) {
         gradient={sportConfig[sport]?.heroGradient}
       />
 
+      {/* Email input */}
+      <div style={{
+        maxWidth: 480, margin: "0 auto 24px",
+        padding: 20, borderRadius: 12,
+        background: c.white, border: `1px solid ${c.slate200}`,
+      }}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: c.slate700, display: "block", marginBottom: 8 }}>
+          Your email (for account & receipt)
+        </label>
+        <input
+          type="email"
+          value={emailInput}
+          onChange={(e) => { setEmailInput(e.target.value); setError(""); }}
+          placeholder="coach@example.com"
+          style={{
+            width: "100%", padding: "12px 16px", borderRadius: 10, fontSize: 14,
+            border: `1px solid ${error ? "#fca5a5" : c.slate200}`,
+            outline: "none", color: c.slate800,
+          }}
+        />
+        {error && <p style={{ fontSize: 12, color: "#dc2626", marginTop: 6 }}>{error}</p>}
+      </div>
+
       <div style={{
         display: "grid",
-        gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
+        gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)",
         gap: 16,
         marginBottom: 40,
+        maxWidth: 700,
+        margin: "0 auto 40px",
       }}>
         {PRICING_TIERS.map((tier) => (
           <div
@@ -2773,7 +3003,7 @@ function PricingPagePro({ sport }) {
                 fontWeight: 700,
                 letterSpacing: 0.5,
               }}>
-                MOST POPULAR
+                14-DAY FREE TRIAL
               </div>
             )}
 
@@ -2784,22 +3014,18 @@ function PricingPagePro({ sport }) {
               <p style={{ fontSize: 13, color: c.slate500, marginBottom: 16 }}>
                 {tier.description}
               </p>
-              <div style={{ marginBottom: 20 }}>
+              <div style={{ marginBottom: 4 }}>
                 <span style={{ fontSize: 36, fontWeight: 800, color: c.slate900 }}>
                   {tier.price}
                 </span>
                 <span style={{ fontSize: 14, color: c.slate500 }}>{tier.period}</span>
-                {tier.savings && (
-                  <span style={{
-                    ...badgeBase,
-                    background: c.green100,
-                    color: c.green700,
-                    marginLeft: 8,
-                  }}>
-                    {tier.savings}
-                  </span>
-                )}
               </div>
+              {tier.sub && (
+                <p style={{ fontSize: 13, color: c.green600, fontWeight: 600, marginBottom: 16 }}>
+                  {tier.sub}
+                </p>
+              )}
+              {!tier.sub && <div style={{ marginBottom: 16 }} />}
 
               <button
                 onClick={() => handleCheckout(tier)}
@@ -2811,17 +3037,16 @@ function PricingPagePro({ sport }) {
                   border: tier.disabled ? `1px solid ${c.slate200}` : "none",
                   background: tier.disabled
                     ? c.white
-                    : tier.popular
-                    ? c.green600
-                    : c.slate800,
+                    : `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`,
                   color: tier.disabled ? c.slate400 : c.white,
                   fontWeight: 700,
                   fontSize: 14,
                   cursor: tier.disabled ? "default" : "pointer",
                   marginBottom: 20,
+                  boxShadow: tier.disabled ? "none" : "0 4px 12px rgba(22,163,74,0.3)",
                 }}
               >
-                {loading === tier.name ? "Redirecting..." : tier.cta}
+                {loading === tier.name ? "Redirecting to checkout..." : tier.cta}
               </button>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -2835,6 +3060,13 @@ function PricingPagePro({ sport }) {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Guarantee */}
+      <div style={{ textAlign: "center", marginBottom: 40, padding: "0 20px" }}>
+        <p style={{ fontSize: 13, color: c.slate500, lineHeight: 1.6 }}>
+          14-day free trial · Cancel anytime · No credit card required to start
+        </p>
       </div>
     </div>
   );
@@ -3116,6 +3348,32 @@ function SeasonPlannerPage({ sport, setPage, isPro = false }) {
     setSeasonPlans((prev) => prev.filter((p) => p.id !== planId));
     if (activePlan === planId) setActivePlan(null);
   };
+
+  // ── Pro Gate ──
+  if (!isPro) {
+    return (
+      <div>
+        <PageHero
+          title="Season Planner"
+          subtitle="Map out your entire season with progressive training templates."
+          gradient={sportConfig[sport]?.heroGradient}
+        />
+        <ProGate isPro={isPro} feature="Season Planning" setPage={setPage}>
+          <div style={{ minHeight: 300, padding: 40 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+              {[1, 2, 3].map(i => (
+                <div key={i} style={{ background: c.white, borderRadius: 12, padding: 20, border: `1px solid ${c.slate200}` }}>
+                  <div style={{ height: 20, width: "60%", background: c.slate200, borderRadius: 6, marginBottom: 12 }} />
+                  <div style={{ height: 14, width: "80%", background: c.slate100, borderRadius: 4, marginBottom: 8 }} />
+                  <div style={{ height: 14, width: "70%", background: c.slate100, borderRadius: 4 }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </ProGate>
+      </div>
+    );
+  }
 
   // ── Template Picker ──
   if (showTemplates) {
@@ -3563,7 +3821,8 @@ function LandingPage({ onGetStarted }) {
 export default function WhistleApp() {
   const isMobile = useIsMobile();
   const isOnline = useOnlineStatus();
-  const isPro = useProAccess();
+  const { isPro, setIsPro } = useProAccess();
+  const usage = useUsageTracking();
   const { deferredPrompt, isInstalled, promptInstall } = useInstallPrompt();
   const [showInstallBanner, setShowInstallBanner] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useLocalStorage("isAuthenticated", false);
@@ -3641,17 +3900,17 @@ export default function WhistleApp() {
 
   const pages = {
     dashboard: <DashboardPage sport={sport} setPage={setPage} />,
-    generate: <GeneratePlanPage sport={sport} setPage={setPage} onPlanGenerated={handlePlanGenerated} />,
+    generate: <GeneratePlanPage sport={sport} setPage={setPage} onPlanGenerated={handlePlanGenerated} isPro={isPro} usage={usage} />,
     "plan-result": generatedPlan && planConfig ? <PlanResultPage key={planKey} plan={generatedPlan} config={planConfig} sport={sport} setPage={setPage} onRegenerate={handleRegenerate} onSavePlan={handleSavePlan} onLogPractice={handleLogPractice} onStartTimer={handleStartTimer} isPro={isPro} /> : null,
     "timer": timerPlan && planConfig ? <PracticeTimer plan={timerPlan} config={planConfig} sport={sport} onExit={() => setPage("plan-result")} /> : null,
     plans: <PlansPage sport={sport} setPage={setPage} />,
     drills: <DrillsPage sport={sport} setPage={setPage} setSelectedDrill={setSelectedDrill} />,
     "drill-detail": <DrillDetailPage drill={selectedDrill} sport={sport} setPage={setPage} />,
-    teams: <TeamsPage sport={sport} setPage={setPage} setSelectedTeam={setSelectedTeam} />,
+    teams: <TeamsPage sport={sport} setPage={setPage} setSelectedTeam={setSelectedTeam} isPro={isPro} />,
     "team-detail": <TeamDetailPage team={selectedTeam} sport={sport} setPage={setPage} />,
     history: <HistoryPage sport={sport} />,
     season: <SeasonPlannerPage sport={sport} setPage={setPage} isPro={isPro} />,
-    pricing: <PricingPagePro sport={sport} />,
+    pricing: <PricingPagePro sport={sport} setPage={setPage} />,
   };
 
   if (!isAuthenticated) {
@@ -3792,7 +4051,7 @@ export default function WhistleApp() {
           if (sportOpen) setSportOpen(false);
           if (isMobile && sidebarOpen) setSidebarOpen(false);
         }}>
-        <Sidebar page={page} setPage={setPage} sport={sport} setSport={setSport} sportOpen={sportOpen} setSportOpen={setSportOpen} isMobile={isMobile} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+        <Sidebar page={page} setPage={setPage} sport={sport} setSport={setSport} sportOpen={sportOpen} setSportOpen={setSportOpen} isMobile={isMobile} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isPro={isPro} />
         {isMobile && sidebarOpen && <div className="whistle-overlay" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.3)", zIndex: 999, display: sidebarOpen ? "block" : "none" }} />}
         <main ref={mainRef} tabIndex={-1} role="main" aria-label="Page content" style={{
           marginLeft: isMobile ? 0 : 240,
@@ -3820,4 +4079,4 @@ export default function WhistleApp() {
       </div>
     </>
   );
-}
+     }
