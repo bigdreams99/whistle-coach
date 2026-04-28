@@ -908,6 +908,335 @@ function DrillDiagram({ drill, sport }) {
   );
 }
 
+function AnimatedDrillDiagram({ drill, sport, animated = true, isPro = false }) {
+  const [isPlaying, setIsPlaying] = React.useState(true);
+  const [currentStep, setCurrentStep] = React.useState(0);
+  const svgRef = React.useRef(null);
+
+  // Non-Pro users always see static diagram
+  if (!isPro || !animated) {
+    return <DrillDiagram drill={drill} sport={sport} />;
+  }
+
+  const fieldColor = sportConfig[sport]?.fieldColor || c.green600;
+  const rng = _ddRng(drill?.id || "default");
+  const lay = _ddLayout(drill || {}, rng);
+  const isB = sport === "Basketball";
+  const isBB = sport === "Baseball";
+  const isFB = sport === "Football";
+
+  const totalArrows = lay.ar.length;
+  const totalSteps = Math.max(totalArrows, 1);
+
+  // Step-by-step auto-advance
+  React.useEffect(() => {
+    if (!isPlaying || totalArrows === 0) return;
+    const interval = setInterval(() => {
+      setCurrentStep((prev) => (prev + 1) % (totalSteps + 1));
+    }, 1200);
+    return () => clearInterval(interval);
+  }, [isPlaying, totalSteps, totalArrows]);
+
+  // Animation durations
+  const drawDuration = 0.8; // seconds per arrow draw
+  const staggerDelay = 0.15; // seconds between arrows in same step
+
+  // Build unique animation ID prefix from drill
+  const animId = `anim-${(drill?.id || "x").toString().replace(/[^a-zA-Z0-9]/g, "")}`;
+
+  // Generate CSS keyframes
+  const styleContent = `
+    @keyframes ${animId}-draw {
+      from { stroke-dashoffset: 200; }
+      to   { stroke-dashoffset: 0; }
+    }
+    @keyframes ${animId}-fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes ${animId}-pulse {
+      0%, 100% { r: 3.5; }
+      50%      { r: 5; }
+    }
+    @keyframes ${animId}-moveDot {
+      from { offset-distance: 0%; }
+      to   { offset-distance: 100%; }
+    }
+    .${animId}-arrow {
+      stroke-dasharray: 200;
+      stroke-dashoffset: 200;
+    }
+    .${animId}-arrow.visible {
+      animation: ${animId}-draw ${drawDuration}s ease-out forwards;
+    }
+    .${animId}-dot-active {
+      animation: ${animId}-pulse 1s ease-in-out infinite;
+    }
+    .${animId}-paused .${animId}-arrow.visible,
+    .${animId}-paused .${animId}-dot-active {
+      animation-play-state: paused;
+    }
+  `;
+
+  // Determine which arrows are visible based on currentStep
+  // Step 0 = no arrows, step 1 = first arrow, step N = all arrows up to N
+  const visibleArrows = currentStep;
+
+  return (
+    <div style={{ position: "relative" }}>
+      <svg
+        ref={svgRef}
+        viewBox="0 0 140 90"
+        className={isPlaying ? "" : `${animId}-paused`}
+        style={{ width: "100%", height: 100, borderRadius: 12, background: fieldColor }}
+      >
+        <style>{styleContent}</style>
+
+        {/* Field markings - same as DrillDiagram */}
+        {isB ? (
+          <>
+            <rect x="2" y="2" width="136" height="86" rx="4" fill="none" stroke={_dd.ln} strokeWidth="1.5" />
+            <line x1="70" y1="2" x2="70" y2="88" stroke={_dd.ln} strokeWidth="1" />
+            <circle cx="70" cy="45" r="14" fill="none" stroke={_dd.ln} strokeWidth="1" />
+          </>
+        ) : isBB ? (
+          <>
+            <polygon points="70,75 30,40 70,5 110,40" fill="none" stroke={_dd.ln} strokeWidth="1.5" />
+            <circle cx="70" cy="45" r="10" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+          </>
+        ) : isFB ? (
+          <>
+            <rect x="2" y="2" width="136" height="86" rx="4" fill="none" stroke="white" strokeWidth="1.5" />
+            {[28, 47, 70, 93, 112].map((x) => (
+              <line key={x} x1={x} y1="2" x2={x} y2="88" stroke="rgba(255,255,255,0.25)" strokeWidth="0.7" />
+            ))}
+          </>
+        ) : (
+          <>
+            <rect x="2" y="2" width="136" height="86" rx="4" fill="none" stroke="white" strokeWidth="1.5" strokeDasharray="4 2" />
+            <line x1="70" y1="2" x2="70" y2="88" stroke="white" strokeWidth="1" strokeDasharray="4 2" />
+            <circle cx="70" cy="45" r="14" fill="none" stroke="white" strokeWidth="1" strokeDasharray="4 2" />
+          </>
+        )}
+
+        {/* Goals */}
+        {lay.gl.map((g, i) =>
+          g.side ? (
+            <rect key={`g${i}`} x={g.x - 3} y={g.y} width={6} height={14} rx="1" fill="none" stroke={_dd.goal} strokeWidth="1" />
+          ) : (
+            <_Goal key={`g${i}`} x={g.x} y={g.y} />
+          )
+        )}
+
+        {/* Zigzag path */}
+        {lay.zz && (
+          <path
+            d={(() => {
+              let d = `M ${lay.zz.x} ${lay.zz.y}`;
+              for (let i = 0; i < lay.zz.seg; i++)
+                d += ` L ${lay.zz.x + (i % 2 === 0 ? lay.zz.w : -lay.zz.w)} ${lay.zz.y + (lay.zz.h / lay.zz.seg) * (i + 1)}`;
+              return d;
+            })()}
+            fill="none"
+            stroke={_dd.arr}
+            strokeWidth="0.8"
+            strokeDasharray="2 1"
+          />
+        )}
+
+        {/* Weave path */}
+        {lay.weave && (
+          <path
+            d={(() => {
+              const pts = [...lay.weave].sort((a, b) => a.x - b.x);
+              if (pts.length < 2) return "";
+              let d = `M ${pts[0].x - 8} ${pts[0].y}`;
+              pts.forEach((p, i) => {
+                d += ` Q ${p.x} ${p.y + (i % 2 === 0 ? -8 : 8)} ${p.x + 7} ${p.y}`;
+              });
+              return d;
+            })()}
+            fill="none"
+            stroke={_dd.arr}
+            strokeWidth="0.8"
+            strokeDasharray="2 1"
+          />
+        )}
+
+        {/* Animated arrows - appear step by step */}
+        {lay.ar.map((a, i) => {
+          const isVisible = i < visibleArrows;
+          const delay = i * staggerDelay;
+
+          if (a.c) {
+            // Curved arrow
+            const mx = (a.x1 + a.x2) / 2;
+            const my = (a.y1 + a.y2) / 2;
+            const dx = a.x2 - a.x1;
+            const dy = a.y2 - a.y1;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            if (len < 1) return null;
+            const bend = 8;
+            const nx = -dy / len;
+            const ny = dx / len;
+            const cx2 = mx + nx * bend;
+            const cy2 = my + ny * bend;
+            const ux = (a.x2 - cx2) / Math.sqrt((a.x2 - cx2) ** 2 + (a.y2 - cy2) ** 2);
+            const uy = (a.y2 - cy2) / Math.sqrt((a.x2 - cx2) ** 2 + (a.y2 - cy2) ** 2);
+            const ax = a.x2 - ux * 2.5;
+            const ay = a.y2 - uy * 2.5;
+            const px = -uy * 1.5;
+            const py = ux * 1.5;
+
+            return (
+              <g key={`a${i}`}>
+                <path
+                  d={`M${a.x1},${a.y1} Q${cx2},${cy2} ${a.x2},${a.y2}`}
+                  fill="none"
+                  stroke={_dd.arr}
+                  strokeWidth="0.8"
+                  className={`${animId}-arrow ${isVisible ? "visible" : ""}`}
+                  style={{ animationDelay: `${delay}s` }}
+                />
+                {isVisible && (
+                  <polygon
+                    points={`${a.x2},${a.y2} ${ax + px},${ay + py} ${ax - px},${ay - py}`}
+                    fill={_dd.arr}
+                    style={{ animation: `${animId}-fadeIn 0.3s ease-out ${delay + drawDuration * 0.7}s both` }}
+                  />
+                )}
+              </g>
+            );
+          } else {
+            // Straight arrow
+            const dx = a.x2 - a.x1;
+            const dy = a.y2 - a.y1;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            if (len < 1) return null;
+            const ux = dx / len;
+            const uy = dy / len;
+            const ax = a.x2 - ux * 2.5;
+            const ay = a.y2 - uy * 2.5;
+            const px = -uy * 1.5;
+            const py = ux * 1.5;
+
+            return (
+              <g key={`a${i}`}>
+                <line
+                  x1={a.x1}
+                  y1={a.y1}
+                  x2={a.x2}
+                  y2={a.y2}
+                  stroke={_dd.arr}
+                  strokeWidth="0.8"
+                  className={`${animId}-arrow ${isVisible ? "visible" : ""}`}
+                  style={{ animationDelay: `${delay}s` }}
+                />
+                {isVisible && (
+                  <polygon
+                    points={`${a.x2},${a.y2} ${ax + px},${ay + py} ${ax - px},${ay - py}`}
+                    fill={_dd.arr}
+                    style={{ animation: `${animId}-fadeIn 0.3s ease-out ${delay + drawDuration * 0.7}s both` }}
+                  />
+                )}
+              </g>
+            );
+          }
+        })}
+
+        {/* Cones */}
+        {lay.cn.map((cc, i) => (
+          <_Cone key={`c${i}`} x={cc.x} y={cc.y} />
+        ))}
+
+        {/* Player dots - active ones pulse */}
+        {lay.ps.map((p, i) => {
+          // Find if this player is the "start" of a currently-visible arrow
+          const isActive = lay.ar.some(
+            (a, ai) =>
+              ai < visibleArrows &&
+              Math.abs(a.x1 - p.x) < 6 &&
+              Math.abs(a.y1 - p.y) < 6
+          );
+          return (
+            <circle
+              key={`p${i}`}
+              cx={p.x}
+              cy={p.y}
+              r={3.5}
+              fill={p.t === "A" ? _dd.tA : _dd.tB}
+              stroke="white"
+              strokeWidth="0.8"
+              className={isActive && isPlaying ? `${animId}-dot-active` : ""}
+            />
+          );
+        })}
+
+        {/* Balls */}
+        {lay.bl.map((b, i) => (
+          <_Ball key={`b${i}`} x={b.x} y={b.y} />
+        ))}
+      </svg>
+
+      {/* Play/Pause toggle */}
+      <button
+        onClick={() => setIsPlaying(!isPlaying)}
+        style={{
+          position: "absolute",
+          bottom: 6,
+          right: 6,
+          width: 24,
+          height: 24,
+          borderRadius: 12,
+          border: "none",
+          background: "rgba(0,0,0,0.5)",
+          color: "white",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 11,
+          lineHeight: 1,
+          padding: 0,
+        }}
+        title={isPlaying ? "Pause animation" : "Play animation"}
+      >
+        {isPlaying ? "\u275A\u275A" : "\u25B6"}
+      </button>
+
+      {/* Step indicator dots */}
+      {totalArrows > 1 && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 6,
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            gap: 3,
+          }}
+        >
+          {Array.from({ length: totalSteps }, (_, i) => (
+            <div
+              key={i}
+              style={{
+                width: 4,
+                height: 4,
+                borderRadius: 2,
+                background: i < currentStep ? "white" : "rgba(255,255,255,0.3)",
+                transition: "background 0.2s",
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ============================================================================
+
 // Keep backward-compatible alias
 function MiniField({ seed, sport }) {
   // Legacy fallback: create a minimal drill object from the seed
@@ -2308,7 +2637,7 @@ function PlanResultPage({ plan: initialPlan, config, sport = "Soccer", setPage, 
 }
 
 // ─── Drills Page ────────────────────────────────────────────────────────
-function DrillsPage({ sport, setPage, setSelectedDrill }) {
+function DrillsPage({ sport, setPage, setSelectedDrill, isPro = false }) {
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("all");
   const [ageFilter, setAgeFilter] = useState("all");
@@ -2371,7 +2700,7 @@ function DrillsPage({ sport, setPage, setSelectedDrill }) {
             const isFavorite = favorites.includes(drill.id);
             return (
               <HoverCard key={drill.id}>
-                <div style={{ padding: 14, cursor: "pointer" }} onClick={() => { setSelectedDrill(drill); setPage("drill-detail"); }} {...clickableProps(() => { setSelectedDrill(drill); setPage("drill-detail"); })}><DrillDiagram drill={drill} sport={sport} /></div>
+                <div style={{ padding: 14, cursor: "pointer" }} onClick={() => { setSelectedDrill(drill); setPage("drill-detail"); }} {...clickableProps(() => { setSelectedDrill(drill); setPage("drill-detail"); })}><AnimatedDrillDiagram drill={drill} sport={sport} isPro={isPro} /></div>
                 <div style={{ padding: "4px 18px 18px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                     <h3 style={{ fontSize: 15, fontWeight: 700, color: c.slate800, cursor: "pointer", flex: 1 }} onClick={() => { setSelectedDrill(drill); setPage("drill-detail"); }} {...clickableProps(() => { setSelectedDrill(drill); setPage("drill-detail"); })}>{drill.name}</h3>
@@ -2401,7 +2730,7 @@ function DrillsPage({ sport, setPage, setSelectedDrill }) {
 }
 
 // ─── Drill Detail ───────────────────────────────────────────────────────
-function DrillDetailPage({ drill, sport, setPage }) {
+function DrillDetailPage({ drill, sport, setPage, isPro = false }) {
   if (!drill) return null;
   const cat = categoryColors[drill.category] || categoryColors.technical;
   return (
@@ -2425,21 +2754,7 @@ function DrillDetailPage({ drill, sport, setPage }) {
       </div>
 
       <div style={{ ...cardStyle, padding: 24, marginTop: 20, marginBottom: 20 }}>
-        <svg viewBox="0 0 500 300" style={{ width: "100%", height: 280, borderRadius: 12, background: sportConfig[sport]?.fieldColor || c.green600 }}>
-          <rect x="5" y="5" width="490" height="290" rx="6" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" />
-          <line x1="250" y1="5" x2="250" y2="295" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
-          <circle cx="250" cy="150" r="40" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
-          {Array.from({ length: 8 }, (_, i) => ({
-            cx: 60 + (((typeof drill.id === 'string' ? drill.id.charCodeAt(0) * 47 : drill.id * 47) + i * 67) % 380),
-            cy: 40 + (((typeof drill.id === 'string' ? drill.id.charCodeAt(0) * 31 : drill.id * 31) + i * 53) % 220),
-            team: i < 4,
-          })).map((d, i) => (
-            <g key={i}>
-              <circle cx={d.cx} cy={d.cy} r="12" fill={d.team ? c.blue500 : c.rose500} stroke="white" strokeWidth="2" />
-              <text x={d.cx} y={d.cy + 4} textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">{d.team ? "O" : "X"}</text>
-            </g>
-          ))}
-        </svg>
+        <AnimatedDrillDiagram drill={drill} sport={sport} isPro={isPro} />
       </div>
 
       {/* Animated Preview */}
@@ -3232,6 +3547,320 @@ const PROGRESSIVE_FOCUS = {
   },
 };
 
+const SEASON_CURRICULA = {
+  Soccer: {
+    "Full Season (12 weeks)": [
+      {
+        weekNumber: 1,
+        title: "Getting Started: Ball Comfort",
+        drills: ["w1", "w3", "t5", "t2", "g4"],
+        coachingTip: "Keep it fun — this week is about falling in love with the ball.",
+      },
+      {
+        weekNumber: 2,
+        title: "Passing Foundations",
+        drills: ["w8", "t1", "t4", "t15", "g3"],
+        coachingTip: "Lock that ankle on every pass. Repetition builds muscle memory.",
+      },
+      {
+        weekNumber: 3,
+        title: "Fitness & Agility Base",
+        drills: ["w4", "w7", "t7", "c1", "ta2"],
+        coachingTip: "Push players just past comfortable — that is where growth happens.",
+      },
+      {
+        weekNumber: 4,
+        title: "Dribbling Under Pressure",
+        drills: ["w9", "t6", "t11", "t13", "g4"],
+        coachingTip: "Encourage players to try moves and fail — fear of mistakes kills creativity.",
+      },
+      {
+        weekNumber: 5,
+        title: "Shooting Technique",
+        drills: ["w1", "t3", "t18", "t10", "g1"],
+        coachingTip: "Plant foot beside the ball, laces through it. Accuracy before power.",
+      },
+      {
+        weekNumber: 6,
+        title: "First Touch & Receiving",
+        drills: ["w2", "t4", "t20", "t9", "ta1"],
+        coachingTip: "A good first touch is worth more than a fast sprint. Drill it relentlessly.",
+      },
+      {
+        weekNumber: 7,
+        title: "Possession & Combination Play",
+        drills: ["w8", "ta5", "ta14", "ta9", "g2"],
+        coachingTip: "Move after you pass. Triangles everywhere. Praise quick decisions.",
+      },
+      {
+        weekNumber: 8,
+        title: "Defending Shape & Pressing",
+        drills: ["w4", "ta3", "ta7", "ta13", "g5"],
+        coachingTip: "Stay on your feet. The best tackle is the one you never have to make.",
+      },
+      {
+        weekNumber: 9,
+        title: "Transition & Counter-Attacks",
+        drills: ["w7", "ta4", "ta16", "ta6", "g2"],
+        coachingTip: "The first 3 seconds after winning the ball decide everything. Sprint forward.",
+      },
+      {
+        weekNumber: 10,
+        title: "Set Pieces & Dead Balls",
+        drills: ["w2", "sp1", "sp2", "sp3", "g1"],
+        coachingTip: "Games are won and lost on set pieces. Give them the attention they deserve.",
+      },
+      {
+        weekNumber: 11,
+        title: "Game Management & Decision Making",
+        drills: ["w6", "ta8", "ta12", "ta15", "g7"],
+        coachingTip: "Let players solve problems. Ask questions instead of giving answers.",
+      },
+      {
+        weekNumber: 12,
+        title: "Match Prep & Peak Performance",
+        drills: ["w1", "ta4", "ta10", "g1", "g2"],
+        coachingTip: "Light intensity, high confidence. Remind them of how far they have come.",
+      },
+    ],
+  },
+  Basketball: {
+    "Full Season (12 weeks)": [
+      {
+        weekNumber: 1,
+        title: "Ball Handling & Getting Comfortable",
+        drills: [108, 121, 134, 111, 132],
+        coachingTip: "Fingertips, not palms. Make them best friends with the ball this week.",
+      },
+      {
+        weekNumber: 2,
+        title: "Passing Fundamentals",
+        drills: [105, 109, 136, 110, 122],
+        coachingTip: "Step into every pass. Call your target's name before you throw.",
+      },
+      {
+        weekNumber: 3,
+        title: "Layups & Footwork",
+        drills: [101, 102, 112, 113, 120],
+        coachingTip: "Inside foot plants, outside knee drives. Repetition on both sides.",
+      },
+      {
+        weekNumber: 4,
+        title: "Shooting Form & Accuracy",
+        drills: [135, 111, 104, 126, 140],
+        coachingTip: "Same routine every shot. Elbow in, follow through, hold the release.",
+      },
+      {
+        weekNumber: 5,
+        title: "Dribble Moves & 1v1",
+        drills: [106, 107, 138, 139, 131],
+        coachingTip: "Eyes up through the cones. The best ball handlers never look down.",
+      },
+      {
+        weekNumber: 6,
+        title: "Defensive Fundamentals",
+        drills: [105, 113, 114, 103, 133],
+        coachingTip: "Defense is effort. Low stance, active hands, never cross your feet.",
+      },
+      {
+        weekNumber: 7,
+        title: "Pick & Roll and Screening",
+        drills: [135, 119, 128, 137, 116],
+        coachingTip: "Screener: be a wall. Ball handler: set up the screen then attack.",
+      },
+      {
+        weekNumber: 8,
+        title: "Fast Break & Transition",
+        drills: [101, 115, 130, 145, 147],
+        coachingTip: "Push the ball ahead. Fill the lanes wide. Make the simple play.",
+      },
+      {
+        weekNumber: 9,
+        title: "Team Offense & Motion",
+        drills: [136, 129, 125, 124, 116],
+        coachingTip: "Pass, don't stand. Every player touches the ball before a shot.",
+      },
+      {
+        weekNumber: 10,
+        title: "Help Defense & Rotations",
+        drills: [135, 146, 103, 117, 149],
+        coachingTip: "See man and ball. Talk on every possession. Rotation drills save games.",
+      },
+      {
+        weekNumber: 11,
+        title: "Zone Offense & Pressure Situations",
+        drills: [105, 144, 143, 118, 148],
+        coachingTip: "Skip passes kill zones. Stay calm when the defense looks different.",
+      },
+      {
+        weekNumber: 12,
+        title: "Game Day Prep & Competition",
+        drills: [134, 141, 127, 142, 150],
+        coachingTip: "Sharpen, don't exhaust. Confidence is the best game-day weapon.",
+      },
+    ],
+  },
+  Baseball: {
+    "Full Season (12 weeks)": [
+      {
+        weekNumber: 1,
+        title: "Arm Care & Throwing Basics",
+        drills: [203, 227, 213, 232, 224],
+        coachingTip: "Fingers on top of the ball. Build arm strength gradually — no max effort yet.",
+      },
+      {
+        weekNumber: 2,
+        title: "Hitting Fundamentals",
+        drills: [204, 205, 201, 214, 225],
+        coachingTip: "Load back, stride forward, stay inside the ball. Tee work builds swings.",
+      },
+      {
+        weekNumber: 3,
+        title: "Fielding Basics & Footwork",
+        drills: [203, 202, 219, 231, 241],
+        coachingTip: "Get in front of the ball every time. Two hands, field through it.",
+      },
+      {
+        weekNumber: 4,
+        title: "Live Hitting & Pitch Recognition",
+        drills: [226, 206, 230, 212, 224],
+        coachingTip: "Have a plan before you step in the box. See the ball out of the hand.",
+      },
+      {
+        weekNumber: 5,
+        title: "Defensive Positioning & Communication",
+        drills: [227, 207, 233, 218, 242],
+        coachingTip: "Call it loud and early. Outfielder always has priority on fly balls.",
+      },
+      {
+        weekNumber: 6,
+        title: "Baserunning Intelligence",
+        drills: [204, 210, 222, 223, 237],
+        coachingTip: "Touch inside of the bag with your left foot. Read the ball off the bat.",
+      },
+      {
+        weekNumber: 7,
+        title: "Situational Hitting",
+        drills: [203, 228, 229, 206, 211],
+        coachingTip: "Right situation, right approach. Move runners. Productive outs win games.",
+      },
+      {
+        weekNumber: 8,
+        title: "Pitching Development",
+        drills: [227, 209, 234, 235, 213],
+        coachingTip: "Mechanics first, velocity second. Every pitch has a purpose in the bullpen.",
+      },
+      {
+        weekNumber: 9,
+        title: "Cutoffs, Relays & Team Defense",
+        drills: [204, 208, 238, 215, 211],
+        coachingTip: "Everyone not catching or throwing is backing up. No standing around.",
+      },
+      {
+        weekNumber: 10,
+        title: "Advanced Situations",
+        drills: [203, 239, 240, 236, 211],
+        coachingTip: "Think one play ahead. Know the situation before every pitch.",
+      },
+      {
+        weekNumber: 11,
+        title: "Clutch Performance & Mental Game",
+        drills: [226, 230, 217, 216, 225],
+        coachingTip: "Pressure is a privilege. Slow the game down and trust your preparation.",
+      },
+      {
+        weekNumber: 12,
+        title: "Season Review & Competition",
+        drills: [227, 212, 211, 224, 243],
+        coachingTip: "Celebrate growth over results. Every player improved — remind them.",
+      },
+    ],
+  },
+  Football: {
+    "Full Season (12 weeks)": [
+      {
+        weekNumber: 1,
+        title: "Conditioning & Movement Fundamentals",
+        drills: [303, 304, 327, 330, 325],
+        coachingTip: "Build the engine first. Quick feet and proper movement patterns set the foundation.",
+      },
+      {
+        weekNumber: 2,
+        title: "Throwing & Catching Basics",
+        drills: [329, 305, 306, 320, 326],
+        coachingTip: "Grip the laces. Catch with your hands, not your body. Reps build confidence.",
+      },
+      {
+        weekNumber: 3,
+        title: "Ball Security & Running",
+        drills: [303, 307, 308, 333, 343],
+        coachingTip: "Five points of contact. High and tight. Fumbles are the most preventable mistake.",
+      },
+      {
+        weekNumber: 4,
+        title: "Route Running & QB Footwork",
+        drills: [327, 301, 315, 331, 311],
+        coachingTip: "Sharp cuts sell routes. Push off the front foot on drops. Timing is everything.",
+      },
+      {
+        weekNumber: 5,
+        title: "Blocking Fundamentals",
+        drills: [304, 317, 318, 334, 344],
+        coachingTip: "Low man wins. Hands inside, feet keep churning. Blocking wins championships.",
+      },
+      {
+        weekNumber: 6,
+        title: "Defensive Techniques",
+        drills: [303, 309, 310, 322, 336],
+        coachingTip: "Run to where they are going, not where they are. Break down before contact.",
+      },
+      {
+        weekNumber: 7,
+        title: "Team Offense Installation",
+        drills: [327, 312, 339, 340, 311],
+        coachingTip: "Walk through, jog through, then go live. Every player knows their job.",
+      },
+      {
+        weekNumber: 8,
+        title: "Team Defense & Coverage",
+        drills: [304, 321, 323, 335, 346],
+        coachingTip: "Eyes on your key. Zone defenders play the ball, man defenders play the player.",
+      },
+      {
+        weekNumber: 9,
+        title: "Special Teams & Situational",
+        drills: [327, 324, 337, 338, 313],
+        coachingTip: "Special teams are one-third of the game. Lane discipline and effort win here.",
+      },
+      {
+        weekNumber: 10,
+        title: "Blitz Pickup & Advanced Reads",
+        drills: [303, 316, 342, 332, 341],
+        coachingTip: "Count the box. Identify the extra rusher. The hot route is your safety valve.",
+      },
+      {
+        weekNumber: 11,
+        title: "Red Zone & Two-Minute Drill",
+        drills: [304, 313, 328, 319, 311],
+        coachingTip: "Compressed field, compressed time. Make quick decisions and trust your teammates.",
+      },
+      {
+        weekNumber: 12,
+        title: "Game Prep & Championship Mindset",
+        drills: [327, 312, 340, 311, 345],
+        coachingTip: "Sharpen the blade, do not dull it. Light work, high confidence, peak focus.",
+      },
+    ],
+  },
+};
+
+
+// ============================================================================
+// SECTION 2: AnimatedDrillDiagram
+// Paste AFTER DrillDiagram (around line 909), BEFORE MiniField
+// ============================================================================
+
+
 function SeasonPlannerPage({ sport, setPage, isPro = false }) {
   const [seasonPlans, setSeasonPlans] = useLocalStorage("seasonPlans", []);
   const [activePlan, setActivePlan] = useState(null);
@@ -3245,19 +3874,33 @@ function SeasonPlannerPage({ sport, setPage, isPro = false }) {
     ? seasonPlans.find((p) => p.id === activePlan)
     : null;
 
-  const createFromTemplate = (template) => {
+    const createFromTemplate = (template) => {
     const startDate = new Date();
     const dayOfWeek = startDate.getDay();
     const daysUntilMonday = dayOfWeek === 0 ? 1 : dayOfWeek === 1 ? 0 : 8 - dayOfWeek;
     startDate.setDate(startDate.getDate() + daysUntilMonday);
-
+  
+    // Check if a curriculum exists for this sport + template
+    const curriculum = SEASON_CURRICULA[sport]?.[template.name];
+  
     const weeks = [];
     for (let i = 0; i < template.weeks; i++) {
       const weekDate = new Date(startDate);
       weekDate.setDate(weekDate.getDate() + i * 7);
       const phase = template.phases.find((p) => p.weeks.includes(i + 1));
       const focusOptions = PROGRESSIVE_FOCUS[sport]?.[phase?.name] || [];
-
+  
+      // Look up curriculum entry for this week
+      const currWeek = curriculum?.find((cw) => cw.weekNumber === i + 1);
+  
+      // Build drill objects from IDs if curriculum exists
+      const sportDrills = drillsBySport[sport] || [];
+      const practiceDrills = currWeek
+        ? currWeek.drills
+            .map((drillId) => sportDrills.find((d) => d.id === drillId))
+            .filter(Boolean)
+        : [];
+  
       weeks.push({
         id: `w-${Date.now()}-${i}`,
         weekNumber: i + 1,
@@ -3266,13 +3909,18 @@ function SeasonPlannerPage({ sport, setPage, isPro = false }) {
         phaseColor: phase?.color || c.slate400,
         focus: focusOptions.slice(0, 2),
         practices: [
-          { id: `p-${Date.now()}-${i}-1`, title: "", status: "planned", drills: [] },
+          {
+            id: `p-${Date.now()}-${i}-1`,
+            title: currWeek?.title || "",
+            status: "planned",
+            drills: practiceDrills,
+          },
         ],
         completed: false,
-        notes: "",
+        notes: currWeek?.coachingTip ? `Coaching tip: ${currWeek.coachingTip}` : "",
       });
     }
-
+  
     const newPlan = {
       id: `sp-${Date.now()}`,
       name: `${sport} ${template.name}`,
@@ -3281,7 +3929,7 @@ function SeasonPlannerPage({ sport, setPage, isPro = false }) {
       createdAt: new Date().toISOString(),
       weeks,
     };
-
+  
     setSeasonPlans((prev) => [...prev, newPlan]);
     setActivePlan(newPlan.id);
     setShowTemplates(false);
@@ -3388,9 +4036,16 @@ function SeasonPlannerPage({ sport, setPage, isPro = false }) {
           {sportTemplates.map((tmpl, idx) => (
             <HoverCard key={idx} onClick={() => createFromTemplate(tmpl)} style={{ padding: 0 }}>
               <div style={{ padding: 20 }}>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: c.slate800, marginBottom: 8 }}>
-                  {tmpl.name}
-                </h3>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <h3 style={{ fontSize: 17, fontWeight: 700, color: c.slate800 }}>
+                    {tmpl.name}
+                  </h3>
+                  {SEASON_CURRICULA[sport]?.[tmpl.name] && (
+                    <span style={{ ...badgeBase, background: c.green100, color: c.green700, fontSize: 10, fontWeight: 700 }}>
+                      SEASON-IN-A-BOX
+                    </span>
+                  )}
+                </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
                   {tmpl.phases.map((phase, i) => (
                     <span key={i} style={{
@@ -3504,12 +4159,15 @@ function SeasonPlannerPage({ sport, setPage, isPro = false }) {
 
               {/* Week content */}
               <div style={{ flex: 1, padding: "14px 16px", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 8 : 16 }}>
-                {/* Week number + date */}
+                {/* Week number + date + title */}
                 <div style={{ minWidth: 100 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: c.slate800 }}>
                     Week {week.weekNumber}
                   </div>
                   <div style={{ fontSize: 12, color: c.slate400 }}>{week.date}</div>
+                  {week.practices?.[0]?.title && (
+                    <div style={{ fontSize: 12, fontWeight: 600, color: c.green700, marginTop: 2 }}>{week.practices[0].title}</div>
+                  )}
                 </div>
 
                 {/* Phase badge */}
@@ -3534,6 +4192,11 @@ function SeasonPlannerPage({ sport, setPage, isPro = false }) {
                       {f}
                     </span>
                   ))}
+                  {week.practices?.[0]?.drills?.length > 0 && (
+                    <span style={{ ...badgeBase, background: c.green100, color: c.green700, fontSize: 10 }}>
+                      {week.practices[0].drills.length} drills loaded
+                    </span>
+                  )}
                 </div>
 
                 {/* Notes input */}
@@ -3668,7 +4331,7 @@ function LandingPage({ onGetStarted }) {
   const totalDrills = Object.values(drillsBySport).reduce((sum, d) => sum + d.length, 0);
 
   const features = [
-    { icon: Zap, title: "4 Sports, 210+ Drills", desc: "Soccer, Basketball, Baseball, and Football — each with a curated library of age-appropriate drills with coaching points and diagrams." },
+    { icon: Zap, title: "4 Sports, 213+ Drills", desc: "Soccer, Basketball, Baseball, and Football — each with a curated library of age-appropriate drills with coaching points and diagrams." },
     { icon: Sparkles, title: "Smart Plan Generator", desc: "Tell us the age group, session length, and focus — our engine builds a phase-structured practice plan in seconds." },
     { icon: ClipboardList, title: "Practice History", desc: "Log sessions, track attendance, rate practices, and build a record of your coaching journey over the season." },
     { icon: Users, title: "Team Management", desc: "Organize rosters, manage multiple teams, and tailor plans to your specific group size and skill level." },
@@ -3682,7 +4345,7 @@ function LandingPage({ onGetStarted }) {
 
   const pricingTiers = [
     { name: "Free", price: "$0", period: "/month", features: ["3 practice plans per month", "Full drill library", "Drill diagrams", "1 team"], cta: "Get Started Free", popular: false },
-    { name: "Pro", price: "$49.99", period: "/year", sub: "$4.17/month · Save $21.89/yr", features: ["Unlimited practice plans", "Full drill library", "Animated drill diagrams", "Unlimited teams", "PDF export", "Shareable plan links", "Priority support"], cta: "Start Free Trial", popular: true },
+    { name: "Pro", price: "$49.99", period: "/year", sub: "$4.17/month · Save $21.89/yr", features: ["Unlimited practice plans", "Full drill library", "Animated drill diagrams", "Season-in-a-Box curricula", "Unlimited teams", "PDF export", "Shareable plan links", "Priority support"], cta: "Start Free Trial", popular: true },
   ];
 
   return (
@@ -3904,8 +4567,8 @@ export default function WhistleApp() {
     "plan-result": generatedPlan && planConfig ? <PlanResultPage key={planKey} plan={generatedPlan} config={planConfig} sport={sport} setPage={setPage} onRegenerate={handleRegenerate} onSavePlan={handleSavePlan} onLogPractice={handleLogPractice} onStartTimer={handleStartTimer} isPro={isPro} /> : null,
     "timer": timerPlan && planConfig ? <PracticeTimer plan={timerPlan} config={planConfig} sport={sport} onExit={() => setPage("plan-result")} /> : null,
     plans: <PlansPage sport={sport} setPage={setPage} />,
-    drills: <DrillsPage sport={sport} setPage={setPage} setSelectedDrill={setSelectedDrill} />,
-    "drill-detail": <DrillDetailPage drill={selectedDrill} sport={sport} setPage={setPage} />,
+    drills: <DrillsPage sport={sport} setPage={setPage} setSelectedDrill={setSelectedDrill} isPro={isPro} />,
+    "drill-detail": <DrillDetailPage drill={selectedDrill} sport={sport} setPage={setPage} isPro={isPro} />,
     teams: <TeamsPage sport={sport} setPage={setPage} setSelectedTeam={setSelectedTeam} isPro={isPro} />,
     "team-detail": <TeamDetailPage team={selectedTeam} sport={sport} setPage={setPage} />,
     history: <HistoryPage sport={sport} />,
@@ -4079,4 +4742,4 @@ export default function WhistleApp() {
       </div>
     </>
   );
-     }
+}
