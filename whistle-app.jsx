@@ -129,6 +129,10 @@ const c = {
   blue50: "#eff6ff",
   indigo500: "#6366f1",
   purple400: "#a855f7",
+  red50: "#fef2f2", red500: "#ef4444", red700: "#b91c1c",
+  amber200: "#fde68a", amber300: "#fcd34d",
+  blue200: "#bfdbfe",
+  emerald100: "#d1fae5",
 };
 
 // Phase colors for plan generation
@@ -1705,6 +1709,8 @@ function Sidebar({ page, setPage, sport, setSport, sportOpen, setSportOpen, isMo
     { key: "drills", label: "Drills", icon: Zap },
     { key: "teams", label: "Teams", icon: Users },
     { key: "history", label: "History", icon: Clock },
+    { key: "schedule", label: "Schedule", icon: Calendar },
+    { key: "messages", label: "Messages", icon: Volume2 },
     { key: "season", label: "Season Plan", icon: CalendarDays },
     { key: "pricing", label: "Pricing", icon: Star },
   ];
@@ -2730,6 +2736,63 @@ function DrillsPage({ sport, setPage, setSelectedDrill, isPro = false }) {
 }
 
 // ─── Drill Detail ───────────────────────────────────────────────────────
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DRILL VIDEO TUTORIALS — YouTube coaching clips mapped to drill IDs
+// ═══════════════════════════════════════════════════════════════════════════
+const DRILL_VIDEOS = {
+  // Soccer
+  w1: { title: "Fun Tag Dribbling Warm-Up", ytId: "hW4pG7sCDqQ" },
+  w2: { title: "Rondo Explained — 4v1 Drill", ytId: "RYUg3dTGM0E" },
+  w3: { title: "Sharks & Minnows Dribbling", ytId: "yC0iQFBgTtY" },
+  t1: { title: "Perfect Passing Technique", ytId: "xwHy1hLBx_c" },
+  t2: { title: "Cone Dribbling Skills", ytId: "1qTq2yFBFgA" },
+  t3: { title: "Youth Shooting Technique", ytId: "RqVKKYsPaOY" },
+  t4: { title: "First Touch Training", ytId: "N8idRK-LnPQ" },
+  t5: { title: "Ball Mastery Drills", ytId: "D1wWMJoQ1fU" },
+  t6: { title: "1v1 Attacking Moves", ytId: "Gp1HxnNHnFs" },
+  ta1: { title: "3v1 Possession Drill", ytId: "V8-Pm4LSIms" },
+  ta2: { title: "Small-Sided Game Tips", ytId: "7sJ7y4HHjKw" },
+  ta3: { title: "Defensive Shape Training", ytId: "FUbUMSPhP7I" },
+  g1: { title: "Running a Great Scrimmage", ytId: "d9Nj8CEYXGM" },
+  // Baseball
+  "101": { title: "Dynamic Baseball Warm-Up", ytId: "QwBKPdSHg8c" },
+  "103": { title: "Ground Ball Fundamentals", ytId: "cm5GReLj07s" },
+  "107": { title: "Batting Tee Progression", ytId: "U0hRLLsBi14" },
+  "111": { title: "Relay Cutoff Positioning", ytId: "ULZ-5R2JeBs" },
+  // Football
+  "201": { title: "Agility Ladder Warm-Up", ytId: "YL_6M8sOjWM" },
+  "205": { title: "Route Running Basics", ytId: "KVE5x2Vb-OA" },
+  "207": { title: "Tackling Technique", ytId: "JkvNbGq_XBg" },
+  // Basketball
+  "301": { title: "Ball Handling Warm-Up", ytId: "g3wWRmjhqEI" },
+  "303": { title: "Form Shooting Drill", ytId: "aQrjSWKdWYU" },
+  "305": { title: "Youth Layup Technique", ytId: "5KwN3cSMbRI" },
+  "309": { title: "Give & Go Motion", ytId: "O9ck0n0oW0c" },
+};
+
+function VideoTutorial({ drillId }) {
+  const video = DRILL_VIDEOS[drillId];
+  if (!video) return null;
+  return (
+    <div style={{ ...cardStyle, padding: 24, marginBottom: 20 }}>
+      <h4 style={{ fontSize: 14, fontWeight: 600, color: c.slate600, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+        <Play size={16} style={{ color: c.green600 }} /> Video Tutorial
+      </h4>
+      <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden", borderRadius: 12 }}>
+        <iframe
+          src={`https://www.youtube.com/embed/${video.ytId}`}
+          title={video.title}
+          style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none", borderRadius: 12 }}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+      <p style={{ fontSize: 13, color: c.slate500, marginTop: 10, fontWeight: 500 }}>{video.title}</p>
+    </div>
+  );
+}
+
 function DrillDetailPage({ drill, sport, setPage, isPro = false }) {
   if (!drill) return null;
   const cat = categoryColors[drill.category] || categoryColors.technical;
@@ -2769,6 +2832,10 @@ function DrillDetailPage({ drill, sport, setPage, isPro = false }) {
           height={typeof window !== 'undefined' && window.matchMedia("(max-width: 768px)").matches ? 180 : 260}
         />
       </div>
+
+
+      {/* Video Tutorial */}
+      <VideoTutorial drillId={drill.id} />
 
       <div className="whistle-drill-detail-grid" style={{ display: "grid", gridTemplateColumns: typeof window !== 'undefined' && window.matchMedia("(max-width: 768px)").matches ? "1fr" : "1fr 320px", gap: 20 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -3046,6 +3113,349 @@ const PRICING_TIERS = [
     trial: 14,
   },
 ];
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SCHEDULE PAGE — Practice calendar with RSVP + attendance tracking
+// ═══════════════════════════════════════════════════════════════════════════
+function SchedulePage({ sport, setPage }) {
+  const [events, setEvents] = useLocalStorage("schedule_" + sport, []);
+  const [showForm, setShowForm] = useState(false);
+  const [newEvent, setNewEvent] = useState({ title: "", date: "", time: "17:00", type: "practice", location: "", notes: "" });
+  const isMobile = useIsMobile();
+  const sportTheme = SPORT_THEMES[sport] || SPORT_THEMES.Soccer;
+
+  const addEvent = () => {
+    if (!newEvent.title || !newEvent.date) return;
+    const ev = { ...newEvent, id: Date.now().toString(), rsvp: { yes: [], no: [], maybe: [] }, attendance: [] };
+    setEvents([...events, ev].sort((a, b) => a.date.localeCompare(b.date)));
+    setNewEvent({ title: "", date: "", time: "17:00", type: "practice", location: "", notes: "" });
+    setShowForm(false);
+  };
+
+  const deleteEvent = (id) => { setEvents(events.filter(e => e.id !== id)); };
+
+  const toggleRSVP = (eventId, status) => {
+    setEvents(events.map(e => {
+      if (e.id !== eventId) return e;
+      const rsvp = { ...e.rsvp };
+      ["yes", "no", "maybe"].forEach(s => { rsvp[s] = rsvp[s].filter(n => n !== "Coach"); });
+      rsvp[status] = [...rsvp[status], "Coach"];
+      return { ...e, rsvp };
+    }));
+  };
+
+  const toggleAttendance = (eventId, playerName) => {
+    setEvents(events.map(e => {
+      if (e.id !== eventId) return e;
+      const att = e.attendance || [];
+      return { ...e, attendance: att.includes(playerName) ? att.filter(n => n !== playerName) : [...att, playerName] };
+    }));
+  };
+
+  const upcoming = events.filter(e => e.date >= new Date().toISOString().split("T")[0]);
+  const past = events.filter(e => e.date < new Date().toISOString().split("T")[0]);
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: c.slate800, marginBottom: 4 }}>Schedule</h1>
+          <p style={{ fontSize: 14, color: c.slate500 }}>Manage practices, games & events</p>
+        </div>
+        <button onClick={() => setShowForm(!showForm)} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`, color: c.white, fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          <Plus size={16} /> Add Event
+        </button>
+      </div>
+
+      {showForm && (
+        <div style={{ ...cardStyle, padding: 24, marginBottom: 24 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: c.slate800, marginBottom: 16 }}>New Event</h3>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+            <input value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} placeholder="Event title" style={{ padding: "10px 14px", borderRadius: 8, border: `1px solid ${c.slate200}`, fontSize: 14, outline: "none" }} />
+            <select value={newEvent.type} onChange={e => setNewEvent({...newEvent, type: e.target.value})} style={{ padding: "10px 14px", borderRadius: 8, border: `1px solid ${c.slate200}`, fontSize: 14, outline: "none", background: c.white }}>
+              <option value="practice">Practice</option>
+              <option value="game">Game</option>
+              <option value="tournament">Tournament</option>
+              <option value="meeting">Team Meeting</option>
+            </select>
+            <input type="date" value={newEvent.date} onChange={e => setNewEvent({...newEvent, date: e.target.value})} style={{ padding: "10px 14px", borderRadius: 8, border: `1px solid ${c.slate200}`, fontSize: 14, outline: "none" }} />
+            <input type="time" value={newEvent.time} onChange={e => setNewEvent({...newEvent, time: e.target.value})} style={{ padding: "10px 14px", borderRadius: 8, border: `1px solid ${c.slate200}`, fontSize: 14, outline: "none" }} />
+            <input value={newEvent.location} onChange={e => setNewEvent({...newEvent, location: e.target.value})} placeholder="Location" style={{ padding: "10px 14px", borderRadius: 8, border: `1px solid ${c.slate200}`, fontSize: 14, outline: "none" }} />
+            <input value={newEvent.notes} onChange={e => setNewEvent({...newEvent, notes: e.target.value})} placeholder="Notes (optional)" style={{ padding: "10px 14px", borderRadius: 8, border: `1px solid ${c.slate200}`, fontSize: 14, outline: "none" }} />
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+            <button onClick={addEvent} style={{ padding: "10px 24px", borderRadius: 8, border: "none", background: c.green600, color: c.white, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Save Event</button>
+            <button onClick={() => setShowForm(false)} style={{ padding: "10px 24px", borderRadius: 8, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {upcoming.length === 0 && past.length === 0 && !showForm && (
+        <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
+          <Calendar size={40} style={{ color: c.slate300, marginBottom: 12 }} />
+          <h3 style={{ fontSize: 18, fontWeight: 600, color: c.slate600, marginBottom: 8 }}>No events yet</h3>
+          <p style={{ fontSize: 14, color: c.slate400 }}>Add your first practice or game to get started</p>
+        </div>
+      )}
+
+      {upcoming.length > 0 && (
+        <div style={{ marginBottom: 32 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 600, color: c.slate500, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 }}>Upcoming ({upcoming.length})</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {upcoming.map(ev => {
+              const typeColors = { practice: { bg: c.green50, color: c.green700 }, game: { bg: c.blue50, color: c.blue700 }, tournament: { bg: c.amber100, color: c.amber700 }, meeting: { bg: c.slate100, color: c.slate600 } };
+              const tc = typeColors[ev.type] || typeColors.practice;
+              return (
+                <div key={ev.id} style={{ ...cardStyle, padding: "18px 22px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                      <div style={{ minWidth: 52, textAlign: "center", padding: "8px 0", borderRadius: 10, background: sportTheme.heroGradient, color: c.white }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, opacity: 0.9 }}>{new Date(ev.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short" })}</div>
+                        <div style={{ fontSize: 20, fontWeight: 700 }}>{new Date(ev.date + "T12:00:00").getDate()}</div>
+                      </div>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                          <h4 style={{ fontSize: 16, fontWeight: 600, color: c.slate800, margin: 0 }}>{ev.title}</h4>
+                          <span style={{ ...badgeBase, background: tc.bg, color: tc.color, fontSize: 11 }}>{ev.type}</span>
+                        </div>
+                        <div style={{ display: "flex", gap: 12, fontSize: 13, color: c.slate500 }}>
+                          <span>{ev.time}</span>
+                          {ev.location && <span>{ev.location}</span>}
+                        </div>
+                        <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                          {["yes", "no", "maybe"].map(status => (
+                            <button key={status} onClick={() => toggleRSVP(ev.id, status)} style={{
+                              padding: "5px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                              border: `1px solid ${(ev.rsvp || {})[status]?.includes("Coach") ? (status === "yes" ? c.green500 : status === "no" ? c.red500 : c.amber500) : c.slate200}`,
+                              background: (ev.rsvp || {})[status]?.includes("Coach") ? (status === "yes" ? c.green50 : status === "no" ? c.red50 : "#fffbeb") : c.white,
+                              color: (ev.rsvp || {})[status]?.includes("Coach") ? (status === "yes" ? c.green700 : status === "no" ? c.red700 : c.amber700) : c.slate500,
+                            }}>
+                              {status === "yes" ? "Going" : status === "no" ? "Not going" : "Maybe"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <button onClick={() => deleteEvent(ev.id)} style={{ padding: 6, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", color: c.slate400 }}>
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {past.length > 0 && (
+        <div>
+          <h3 style={{ fontSize: 15, fontWeight: 600, color: c.slate500, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 }}>Past Events ({past.length})</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {past.map(ev => (
+              <div key={ev.id} style={{ ...cardStyle, padding: "14px 18px", opacity: 0.8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: c.slate600 }}>{ev.title}</span>
+                    <span style={{ fontSize: 13, color: c.slate400, marginLeft: 8 }}>{new Date(ev.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 12, color: (ev.attendance || []).length > 0 ? c.green700 : c.slate400, fontWeight: (ev.attendance || []).length > 0 ? 600 : 400 }}>
+                      {(ev.attendance || []).length > 0 ? `${ev.attendance.length} attended` : "No attendance"}
+                    </span>
+                    <button onClick={() => toggleAttendance(ev.id, "Player" + ((ev.attendance || []).length + 1))} title="Add attendee" style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${c.green200}`, background: c.green50, color: c.green700, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>+ Attended</button>
+                    {(ev.attendance || []).length > 0 && (
+                      <button onClick={() => { setEvents(events.map(e => e.id === ev.id ? { ...e, attendance: e.attendance.slice(0, -1) } : e)); }} title="Remove last" style={{ padding: "3px 8px", borderRadius: 6, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate500, fontSize: 11, cursor: "pointer" }}>−</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MESSAGES PAGE — Team announcements & communication
+// ═══════════════════════════════════════════════════════════════════════════
+function MessagesPage({ sport, setPage }) {
+  const [messages, setMessages] = useLocalStorage("messages_" + sport, []);
+  const [pinned, setPinned] = useLocalStorage("pinned_" + sport, []);
+  const [newMsg, setNewMsg] = useState("");
+  const [msgType, setMsgType] = useState("announcement");
+  const [showCompose, setShowCompose] = useState(false);
+  const isMobile = useIsMobile();
+
+  const sendMessage = () => {
+    if (!newMsg.trim()) return;
+    const msg = {
+      id: Date.now().toString(),
+      text: newMsg,
+      type: msgType,
+      author: "Coach",
+      timestamp: new Date().toISOString(),
+      reactions: {},
+    };
+    setMessages([msg, ...messages]);
+    setNewMsg("");
+    setShowCompose(false);
+  };
+
+  const deleteMessage = (id) => {
+    setMessages(messages.filter(m => m.id !== id));
+    setPinned(pinned.filter(p => p !== id));
+  };
+
+  const togglePin = (id) => {
+    setPinned(pinned.includes(id) ? pinned.filter(p => p !== id) : [...pinned, id]);
+  };
+
+  const addReaction = (msgId, emoji) => {
+    setMessages(messages.map(m => {
+      if (m.id !== msgId) return m;
+      const reactions = { ...m.reactions };
+      reactions[emoji] = (reactions[emoji] || 0) + 1;
+      return { ...m, reactions };
+    }));
+  };
+
+  const typeConfig = {
+    announcement: { icon: Volume2, label: "Announcement", bg: c.blue50, color: c.blue700, border: c.blue200 },
+    alert: { icon: Info, label: "Game Day Alert", bg: c.amber100, color: c.amber700, border: c.amber300 },
+    reminder: { icon: Clock, label: "Reminder", bg: c.green50, color: c.green700, border: c.green200 },
+    update: { icon: Activity, label: "Update", bg: c.slate100, color: c.slate600, border: c.slate200 },
+  };
+
+  const pinnedMsgs = messages.filter(m => pinned.includes(m.id));
+  const regularMsgs = messages.filter(m => !pinned.includes(m.id));
+
+  const formatTime = (iso) => {
+    const d = new Date(iso);
+    const now = new Date();
+    const diff = now - d;
+    if (diff < 60000) return "Just now";
+    if (diff < 3600000) return Math.floor(diff / 60000) + "m ago";
+    if (diff < 86400000) return Math.floor(diff / 3600000) + "h ago";
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: c.slate800, marginBottom: 4 }}>Messages</h1>
+          <p style={{ fontSize: 14, color: c.slate500 }}>Team announcements, alerts & updates</p>
+        </div>
+        <button onClick={() => setShowCompose(!showCompose)} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`, color: c.white, fontWeight: 600, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          <Plus size={16} /> New Message
+        </button>
+      </div>
+
+      {showCompose && (
+        <div style={{ ...cardStyle, padding: 24, marginBottom: 24, borderLeft: `3px solid ${c.green500}` }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+            {Object.entries(typeConfig).map(([key, cfg]) => (
+              <button key={key} onClick={() => setMsgType(key)} style={{
+                padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                border: `1px solid ${msgType === key ? cfg.border : c.slate200}`,
+                background: msgType === key ? cfg.bg : c.white,
+                color: msgType === key ? cfg.color : c.slate500,
+              }}>{cfg.label}</button>
+            ))}
+          </div>
+          <textarea value={newMsg} onChange={e => setNewMsg(e.target.value)} placeholder="Write your message..." rows={3} style={{ width: "100%", padding: "12px 14px", borderRadius: 8, border: `1px solid ${c.slate200}`, fontSize: 14, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button onClick={sendMessage} style={{ padding: "10px 24px", borderRadius: 8, border: "none", background: c.green600, color: c.white, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Send</button>
+            <button onClick={() => setShowCompose(false)} style={{ padding: "10px 24px", borderRadius: 8, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {messages.length === 0 && !showCompose && (
+        <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
+          <Volume2 size={40} style={{ color: c.slate300, marginBottom: 12 }} />
+          <h3 style={{ fontSize: 18, fontWeight: 600, color: c.slate600, marginBottom: 8 }}>No messages yet</h3>
+          <p style={{ fontSize: 14, color: c.slate400 }}>Send your first team announcement to get started</p>
+        </div>
+      )}
+
+      {pinnedMsgs.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ fontSize: 13, fontWeight: 600, color: c.slate400, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Pinned</h3>
+          {pinnedMsgs.map(msg => {
+            const cfg = typeConfig[msg.type] || typeConfig.announcement;
+            const TypeIcon = cfg.icon;
+            return (
+              <div key={msg.id} style={{ ...cardStyle, padding: "16px 20px", marginBottom: 8, borderLeft: `3px solid ${cfg.border}`, background: cfg.bg }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                      <TypeIcon size={14} style={{ color: cfg.color }} />
+                      <span style={{ fontSize: 12, fontWeight: 600, color: cfg.color }}>{cfg.label}</span>
+                      <span style={{ ...badgeBase, background: c.amber100, color: c.amber700, fontSize: 10 }}>Pinned</span>
+                      <span style={{ fontSize: 12, color: c.slate400, marginLeft: "auto" }}>{formatTime(msg.timestamp)}</span>
+                    </div>
+                    <p style={{ fontSize: 14, color: c.slate700, lineHeight: 1.6, margin: 0 }}>{msg.text}</p>
+                    <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                      {["thumbsup", "fire", "check"].map(emoji => (
+                        <button key={emoji} onClick={() => addReaction(msg.id, emoji)} style={{ padding: "3px 10px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, fontSize: 12, cursor: "pointer", color: c.slate500 }}>
+                          {emoji === "thumbsup" ? "\u{1F44D}" : emoji === "fire" ? "\u{1F525}" : "✅"} {(msg.reactions || {})[emoji] || ""}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={() => togglePin(msg.id)} title="Unpin" style={{ padding: 4, border: "none", background: "transparent", cursor: "pointer", color: c.amber500 }}><Star size={14} /></button>
+                    <button onClick={() => deleteMessage(msg.id)} title="Delete" style={{ padding: 4, border: "none", background: "transparent", cursor: "pointer", color: c.slate400 }}><Trash2 size={14} /></button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {regularMsgs.length > 0 && (
+        <div>
+          {pinnedMsgs.length > 0 && <h3 style={{ fontSize: 13, fontWeight: 600, color: c.slate400, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Recent</h3>}
+          {regularMsgs.map(msg => {
+            const cfg = typeConfig[msg.type] || typeConfig.announcement;
+            const TypeIcon = cfg.icon;
+            return (
+              <div key={msg.id} style={{ ...cardStyle, padding: "16px 20px", marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                      <TypeIcon size={14} style={{ color: cfg.color }} />
+                      <span style={{ fontSize: 12, fontWeight: 600, color: cfg.color }}>{cfg.label}</span>
+                      <span style={{ fontSize: 12, color: c.slate400, marginLeft: "auto" }}>{formatTime(msg.timestamp)}</span>
+                    </div>
+                    <p style={{ fontSize: 14, color: c.slate700, lineHeight: 1.6, margin: 0 }}>{msg.text}</p>
+                    <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                      {["thumbsup", "fire", "check"].map(emoji => (
+                        <button key={emoji} onClick={() => addReaction(msg.id, emoji)} style={{ padding: "3px 10px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, fontSize: 12, cursor: "pointer", color: c.slate500 }}>
+                          {emoji === "thumbsup" ? "\u{1F44D}" : emoji === "fire" ? "\u{1F525}" : "\u2705"} {(msg.reactions || {})[emoji] || ""}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={() => togglePin(msg.id)} title="Pin" style={{ padding: 4, border: "none", background: "transparent", cursor: "pointer", color: c.slate300 }}><Star size={14} /></button>
+                    <button onClick={() => deleteMessage(msg.id)} title="Delete" style={{ padding: 4, border: "none", background: "transparent", cursor: "pointer", color: c.slate400 }}><Trash2 size={14} /></button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function useProAccess() {
   const [isPro, setIsPro] = useLocalStorage("wc_isPro", false);
@@ -4572,6 +4982,8 @@ export default function WhistleApp() {
     teams: <TeamsPage sport={sport} setPage={setPage} setSelectedTeam={setSelectedTeam} isPro={isPro} />,
     "team-detail": <TeamDetailPage team={selectedTeam} sport={sport} setPage={setPage} />,
     history: <HistoryPage sport={sport} />,
+    schedule: <SchedulePage sport={sport} setPage={setPage} />,
+    messages: <MessagesPage sport={sport} setPage={setPage} />,
     season: <SeasonPlannerPage sport={sport} setPage={setPage} isPro={isPro} />,
     pricing: <PricingPagePro sport={sport} setPage={setPage} />,
   };
