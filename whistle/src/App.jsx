@@ -1,43 +1,28 @@
-// Import all dependencies
-import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import {
-  Home, ClipboardList, Zap, Users, Clock, Star, ChevronDown, ChevronLeft,
-  Plus, Search, Heart, ArrowRight, Calendar, Timer, Target, Trophy,
-  TrendingUp, Filter, MoreHorizontal, CheckCircle2, Circle, Sparkles,
-  UserPlus, Trash2, BarChart3, Activity, Award, Play, RotateCcw, ChevronRight, Info,
-  Download, Printer, Share2, Menu, X,
-} from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Menu, X } from "lucide-react";
 
-// Import hooks
 import { useIsMobile } from "./hooks/useIsMobile.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
 
-// Import constants
 import { c, phaseColorMap } from "./constants/colors.js";
 import { sportConfig, AGE_GROUPS, FOCUS_OPTIONS_BY_SPORT, EQUIPMENT_BY_SPORT, DURATION_OPTIONS } from "./constants/sports.js";
 import { defaultPracticePlans, defaultTeamsData, defaultHistoryData } from "./constants/defaults.js";
 
-// Import data
 import { soccerDrillsFull, drillsBySport } from "./data/drills.js";
 
-// Import utilities
 import { generatePlan, getDrillPool } from "./utils/planGenerator.js";
 import { generatePlanTextSummary, generatePrintHTML, handleExportPDF, handlePrint, handleShare } from "./utils/planExport.js";
 
-// Import page components
 import { DashboardPage, GeneratePlanPage, PlanResultPage, DrillsPage, DrillDetailPage, PlansPage, TeamsPage, TeamDetailPage, HistoryPage, PricingPage } from "./pages/index.js";
 
-// Import Sidebar component
 import Sidebar from "./components/Sidebar.jsx";
+import BottomNav from "./components/BottomNav.jsx";
+import { ToastProvider } from "./components/ui/Toast.jsx";
 
-
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MAIN APP
-// ═══════════════════════════════════════════════════════════════════════════
 export default function WhistleApp() {
   const isMobile = useIsMobile();
   const [page, setPage] = useState("dashboard");
+  const [prevPage, setPrevPage] = useState(null);
   const [sport, setSport] = useLocalStorage("selectedSport", "Soccer");
   const [sportOpen, setSportOpen] = useState(false);
   const [selectedDrill, setSelectedDrill] = useState(null);
@@ -48,21 +33,42 @@ export default function WhistleApp() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [plans, setPlans] = useLocalStorage("practicePlans", defaultPracticePlans);
   const [history, setHistory] = useLocalStorage("practiceHistory", defaultHistoryData);
+  const [darkMode, setDarkMode] = useLocalStorage("darkMode", false);
+
+  // Apply dark mode
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  }, [darkMode]);
+
+  // Page transition tracking
+  const handleSetPage = (newPage) => {
+    setPrevPage(page);
+    setPage(newPage);
+    if (isMobile) setSidebarOpen(false);
+    // Scroll to top on page change
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handlePlanGenerated = (plan, config) => {
     setGeneratedPlan(plan);
     setPlanConfig(config);
-    setPage("plan-result");
+    handleSetPage("plan-result");
   };
 
   const handleSavePlan = (planTitle) => {
     if (!generatedPlan || !planConfig) return;
     const newPlan = {
-      id: Math.max(...plans.map(p => p.id), 0) + 1,
+      id: Math.max(...plans.map((p) => p.id), 0) + 1,
       title: planTitle || `${planConfig.ageGroup} Practice Plan`,
       duration: planConfig.duration,
       age: planConfig.ageGroup,
-      date: new Date().toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" }).replace(/\//g, "/"),
+      date: new Date()
+        .toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" })
+        .replace(/\//g, "/"),
       status: "draft",
       drills: generatedPlan.length,
       focus: planConfig.focusAreas,
@@ -79,67 +85,178 @@ export default function WhistleApp() {
     if (planConfig) {
       const plan = generatePlan(planConfig, sport);
       setGeneratedPlan(plan);
-      setPlanKey(k => k + 1);
+      setPlanKey((k) => k + 1);
     }
   };
 
   const pages = {
-    dashboard: <DashboardPage sport={sport} setPage={setPage} />,
-    generate: <GeneratePlanPage sport={sport} setPage={setPage} onPlanGenerated={handlePlanGenerated} />,
-    "plan-result": generatedPlan && planConfig ? <PlanResultPage key={planKey} plan={generatedPlan} config={planConfig} sport={sport} setPage={setPage} onRegenerate={handleRegenerate} onSavePlan={handleSavePlan} onLogPractice={handleLogPractice} /> : null,
-    plans: <PlansPage sport={sport} setPage={setPage} />,
-    drills: <DrillsPage sport={sport} setPage={setPage} setSelectedDrill={setSelectedDrill} />,
-    "drill-detail": <DrillDetailPage drill={selectedDrill} sport={sport} setPage={setPage} />,
-    teams: <TeamsPage sport={sport} setPage={setPage} setSelectedTeam={setSelectedTeam} />,
-    "team-detail": <TeamDetailPage team={selectedTeam} sport={sport} setPage={setPage} />,
+    dashboard: <DashboardPage sport={sport} setPage={handleSetPage} />,
+    generate: <GeneratePlanPage sport={sport} setPage={handleSetPage} onPlanGenerated={handlePlanGenerated} />,
+    "plan-result":
+      generatedPlan && planConfig ? (
+        <PlanResultPage
+          key={planKey}
+          plan={generatedPlan}
+          config={planConfig}
+          sport={sport}
+          setPage={handleSetPage}
+          onRegenerate={handleRegenerate}
+          onSavePlan={handleSavePlan}
+          onLogPractice={handleLogPractice}
+        />
+      ) : null,
+    plans: <PlansPage sport={sport} setPage={handleSetPage} />,
+    drills: <DrillsPage sport={sport} setPage={handleSetPage} setSelectedDrill={setSelectedDrill} />,
+    "drill-detail": <DrillDetailPage drill={selectedDrill} sport={sport} setPage={handleSetPage} />,
+    teams: <TeamsPage sport={sport} setPage={handleSetPage} setSelectedTeam={setSelectedTeam} />,
+    "team-detail": <TeamDetailPage team={selectedTeam} sport={sport} setPage={handleSetPage} />,
     history: <HistoryPage />,
     pricing: <PricingPage sport={sport} />,
   };
 
   return (
-    <>
-      <style>{`
-        button:focus-visible, [role="button"]:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible {
-          outline: 2px solid #22c55e;
-          outline-offset: 2px;
-          border-radius: 4px;
-        }
-        div[tabindex]:focus-visible {
-          outline: 2px solid #22c55e;
-          outline-offset: 2px;
-        }
-        *:focus { outline: none; }
-        @media (max-width: 768px) {
-          body { margin: 0; padding: 0; }
-        }
-      `}</style>
-      <div style={{ display: "flex", minHeight: "100vh", background: c.slate50, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}
+    <ToastProvider>
+      {/* Skip to content link */}
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
+
+      <div
+        style={{
+          display: "flex",
+          minHeight: "100vh",
+          background: "var(--color-surface-alt)",
+          fontFamily: "var(--font-family)",
+        }}
         onClick={() => {
           if (sportOpen) setSportOpen(false);
           if (isMobile && sidebarOpen) setSidebarOpen(false);
-        }}>
-        <Sidebar page={page} setPage={setPage} sport={sport} setSport={setSport} sportOpen={sportOpen} setSportOpen={setSportOpen} isMobile={isMobile} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-        {isMobile && sidebarOpen && <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.3)", zIndex: 999, display: sidebarOpen ? "block" : "none" }} />}
-        <main style={{
-          marginLeft: isMobile ? 0 : 240,
-          flex: 1,
-          padding: isMobile ? "12px 16px" : "28px 36px",
-          maxWidth: isMobile ? "100%" : 1200,
-          position: "relative",
-          width: "100%",
-          overflow: "hidden"
-        }}>
+        }}
+      >
+        {/* Sidebar — hidden on mobile in favor of bottom nav */}
+        {!isMobile && (
+          <Sidebar
+            page={page}
+            setPage={handleSetPage}
+            sport={sport}
+            setSport={setSport}
+            sportOpen={sportOpen}
+            setSportOpen={setSportOpen}
+            isMobile={false}
+            sidebarOpen={true}
+            setSidebarOpen={setSidebarOpen}
+            darkMode={darkMode}
+            setDarkMode={setDarkMode}
+          />
+        )}
+
+        {/* Mobile sidebar overlay */}
+        {isMobile && sidebarOpen && (
+          <>
+            <div
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: "var(--color-surface-overlay)",
+                zIndex: 999,
+              }}
+              onClick={() => setSidebarOpen(false)}
+              aria-hidden="true"
+            />
+            <Sidebar
+              page={page}
+              setPage={handleSetPage}
+              sport={sport}
+              setSport={setSport}
+              sportOpen={sportOpen}
+              setSportOpen={setSportOpen}
+              isMobile={true}
+              sidebarOpen={sidebarOpen}
+              setSidebarOpen={setSidebarOpen}
+              darkMode={darkMode}
+              setDarkMode={setDarkMode}
+            />
+          </>
+        )}
+
+        <main
+          id="main-content"
+          style={{
+            marginLeft: isMobile ? 0 : 260,
+            flex: 1,
+            padding: isMobile ? "var(--space-3) var(--space-4)" : "var(--space-8) var(--space-10)",
+            maxWidth: isMobile ? "100%" : 1200,
+            position: "relative",
+            width: "100%",
+            overflow: "hidden",
+            paddingBottom: isMobile ? "calc(80px + env(safe-area-inset-bottom, 0px))" : undefined,
+          }}
+        >
+          {/* Mobile header */}
           {isMobile && (
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, paddingTop: 4 }}>
-              <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ padding: "8px", borderRadius: 8, border: `1px solid ${c.slate200}`, background: c.white, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 44, minWidth: 44 }}>
-                {sidebarOpen ? <X size={20} color={c.slate800} /> : <Menu size={20} color={c.slate800} />}
+            <div
+              className="safe-area-top"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-3)",
+                marginBottom: "var(--space-4)",
+                paddingTop: "var(--space-1)",
+              }}
+            >
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                aria-label={sidebarOpen ? "Close menu" : "Open menu"}
+                style={{
+                  padding: 8,
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--color-border)",
+                  background: "var(--color-surface)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: 44,
+                  minWidth: 44,
+                  transition: `all var(--transition-fast)`,
+                }}
+              >
+                {sidebarOpen ? (
+                  <X size={20} color="var(--color-text-primary)" />
+                ) : (
+                  <Menu size={20} color="var(--color-text-primary)" />
+                )}
               </button>
-              <div style={{ fontSize: 16, fontWeight: 600, color: c.slate800 }}>Whistle</div>
+              <div
+                style={{
+                  fontSize: "var(--text-lg)",
+                  fontWeight: "var(--weight-bold)",
+                  color: "var(--color-text-primary)",
+                }}
+              >
+                Whistle
+              </div>
             </div>
           )}
-          {pages[page]}
+
+          {/* Page content with transition */}
+          <div key={page} className="page-enter">
+            {pages[page]}
+          </div>
         </main>
+
+        {/* Mobile bottom navigation */}
+        {isMobile && (
+          <BottomNav
+            page={page}
+            setPage={handleSetPage}
+            onMoreClick={() => setSidebarOpen(true)}
+          />
+        )}
       </div>
-    </>
+    </ToastProvider>
   );
 }

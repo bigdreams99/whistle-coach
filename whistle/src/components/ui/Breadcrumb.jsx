@@ -1,16 +1,44 @@
 import React from "react";
-import { c } from "../../constants/colors.js";
 
 export default function Breadcrumb({ items }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20, fontSize: 13, color: c.slate500 }}>
+    <nav
+      aria-label="Breadcrumb"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        marginBottom: "var(--space-5)",
+        fontSize: "var(--text-sm)",
+        color: "var(--color-text-muted)",
+      }}
+    >
       {items.map((item, i) => (
         <span key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {i > 0 && <span>/</span>}
-          {item.onClick ? <span onClick={item.onClick} style={{ color: c.green600, cursor: "pointer", fontWeight: 500 }}>{item.label}</span>
-            : <span style={{ color: c.slate600, fontWeight: 500 }}>{item.label}</span>}
+          {i > 0 && <span aria-hidden>/</span>}
+          {item.onClick ? (
+            <button
+              onClick={item.onClick}
+              style={{
+                color: "var(--color-primary)",
+                cursor: "pointer",
+                fontWeight: "var(--weight-medium)",
+                background: "none",
+                border: "none",
+                padding: 0,
+                fontFamily: "var(--font-family)",
+                fontSize: "inherit",
+              }}
+            >
+              {item.label}
+            </button>
+          ) : (
+            <span style={{ color: "var(--color-text-secondary)", fontWeight: "var(--weight-medium)" }}>
+              {item.label}
+            </span>
+          )}
         </span>
       ))}
-    </div>
+    </nav>
   );
 }

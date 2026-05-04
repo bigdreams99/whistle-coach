@@ -1,107 +1,179 @@
-import React, { useState } from "react";
-import { RotateCcw, Download, Printer, Share2, ChevronLeft, CheckCircle2 } from "lucide-react";
-import { c, phaseColorMap } from "../constants/colors.js";
+import React, { useState, useEffect } from "react";
+import { RotateCcw, Download, Printer, Share2, ChevronLeft, CheckCircle2, ChevronDown } from "lucide-react";
+import { phaseColorMap } from "../constants/colors.js";
 import { AGE_GROUPS } from "../constants/sports.js";
-import { generatePlan, getDrillPool } from "../utils/planGenerator.js";
 import { handleExportPDF, handlePrint, handleShare } from "../utils/planExport.js";
-import { Breadcrumb } from "../components/ui/index.js";
-
-const cardStyle = {
-  background: c.white, borderRadius: 16, border: `1px solid ${c.slate200}`,
-  overflow: "hidden", transition: "box-shadow 0.2s, transform 0.15s", cursor: "pointer",
-};
-
-const badgeBase = {
-  display: "inline-flex", alignItems: "center", padding: "3px 10px",
-  borderRadius: 20, fontSize: 12, fontWeight: 600, letterSpacing: 0.2,
-};
+import { Breadcrumb, Badge, Button, Card } from "../components/ui/index.js";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 
 export default function PlanResultPage({ plan: initialPlan, config, sport = "Soccer", setPage, onRegenerate, onSavePlan, onLogPractice }) {
   const [plan, setPlan] = useState(initialPlan);
   const [expandedIdx, setExpandedIdx] = useState(null);
-  const [swappingIdx, setSwappingIdx] = useState(null);
   const [saved, setSaved] = useState(false);
-  const ageInfo = AGE_GROUPS.find(a => a.value === config.ageGroup);
+  const [animatedBars, setAnimatedBars] = useState(false);
+  const isMobile = useIsMobile();
+  const ageInfo = AGE_GROUPS.find((a) => a.value === config.ageGroup);
   const totalTime = plan.reduce((sum, p) => sum + p.phaseDuration, 0);
-  const phaseLabels = { "Warm-Up": "warmup", "Technical": "technical", "Tactical": "tactical", "Game": "game", "Cool-Down": "cooldown" };
+  const phaseLabels = { "Warm-Up": "warmup", Technical: "technical", Tactical: "tactical", Game: "game", "Cool-Down": "cooldown" };
+
+  // Animate phase bar on mount
+  useEffect(() => {
+    const timer = setTimeout(() => setAnimatedBars(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
-    <div>
-      <Breadcrumb items={[
-        { label: "Generate Plan", onClick: () => setPage("generate") },
-        { label: "Your Training Plan" },
-      ]} />
+    <div className="page-enter">
+      <Breadcrumb items={[{ label: "Generate Plan", onClick: () => setPage("generate") }, { label: "Your Training Plan" }]} />
 
-      <div style={{ ...cardStyle, padding: "28px 32px", marginBottom: 24, cursor: "default" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      {/* Header card */}
+      <Card elevation="mid" padding="lg" style={{ marginBottom: "var(--space-6)", cursor: "default" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "var(--space-4)" }}>
           <div>
-            <h1 style={{ fontSize: 26, fontWeight: 700, color: c.slate800, marginBottom: 4 }}>Your Training Plan</h1>
-            <p style={{ fontSize: 14, color: c.slate500, marginBottom: 4 }}>{ageInfo?.label} · {config.playerCount} players · {totalTime} min · Focus: {config.focusAreas.join(", ")}</p>
+            <h1 style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-bold)", color: "var(--color-text-primary)", marginBottom: "var(--space-1)", lineHeight: "var(--leading-tight)" }}>
+              Your Training Plan
+            </h1>
+            <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-muted)", marginBottom: "var(--space-1)" }}>
+              {ageInfo?.label} · {config.playerCount} players · {totalTime} min · Focus: {config.focusAreas.join(", ")}
+            </p>
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={() => { if (onSavePlan) onSavePlan(""); setSaved(true); }} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: saved ? c.green700 : `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`, color: c.white, fontWeight: 600, fontSize: 13, cursor: saved ? "default" : "pointer", display: "flex", alignItems: "center", gap: 6 }}><CheckCircle2 size={15} /> {saved ? "Plan Saved!" : "Save Plan"}</button>
-            <button onClick={() => handleExportPDF(plan, config, sport, ageInfo)} style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Download size={15} /> Export PDF</button>
-            <button onClick={() => handlePrint(plan, config, sport, ageInfo)} style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Printer size={15} /> Print</button>
-            <button onClick={() => handleShare(plan, config, sport, ageInfo)} style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Share2 size={15} /> Share</button>
-            <button onClick={onRegenerate} style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><RotateCcw size={15} /> Regenerate</button>
-            <button onClick={() => setPage("generate")} style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.white, color: c.slate600, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><ChevronLeft size={15} /> Edit Settings</button>
+          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+            <Button
+              variant={saved ? "primary" : "primary"}
+              size="md"
+              icon={CheckCircle2}
+              onClick={() => { if (onSavePlan) onSavePlan(""); setSaved(true); }}
+              disabled={saved}
+              style={saved ? { background: "var(--color-primary-dark)" } : { background: "linear-gradient(135deg, var(--color-primary), var(--color-emerald))", boxShadow: "0 4px 12px rgba(22, 163, 74, 0.3)" }}
+            >
+              {saved ? "Plan Saved!" : "Save Plan"}
+            </Button>
+            <Button variant="secondary" size="md" icon={Download} onClick={() => handleExportPDF(plan, config, sport, ageInfo)}>Export</Button>
+            <Button variant="secondary" size="md" icon={Printer} onClick={() => handlePrint(plan, config, sport, ageInfo)}>Print</Button>
+            <Button variant="secondary" size="md" icon={Share2} onClick={() => handleShare(plan, config, sport, ageInfo)}>Share</Button>
+            <Button variant="secondary" size="md" icon={RotateCcw} onClick={onRegenerate}>Regenerate</Button>
+            <Button variant="secondary" size="md" icon={ChevronLeft} onClick={() => setPage("generate")}>Edit</Button>
           </div>
         </div>
 
-        <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", height: 10, marginTop: 20, background: c.slate100 }}>
-          {plan.map((p, i) => (
-            <div key={i} style={{ flex: p.phaseDuration, background: phaseColorMap[phaseLabels[p.phaseLabel]] || c.green500, transition: "all 0.3s" }} />
-          ))}
+        {/* Phase progress bar */}
+        <div
+          style={{
+            display: "flex",
+            borderRadius: "var(--radius-md)",
+            overflow: "hidden",
+            height: 12,
+            marginTop: "var(--space-5)",
+            background: "var(--color-surface-alt)",
+          }}
+        >
+          {plan.map((p, i) => {
+            const phaseKey = phaseLabels[p.phaseLabel];
+            return (
+              <div
+                key={i}
+                style={{
+                  flex: animatedBars ? p.phaseDuration : 0,
+                  background: phaseColorMap[phaseKey] || "var(--color-primary)",
+                  transition: `flex var(--transition-slow)`,
+                  transitionDelay: `${i * 100}ms`,
+                }}
+              />
+            );
+          })}
         </div>
-        <div style={{ display: "flex", marginTop: 8, gap: 16 }}>
-          {plan.map((p, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: c.slate500 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: phaseColorMap[phaseLabels[p.phaseLabel]] || c.green500 }} />
-              {p.phaseLabel} ({p.phaseDuration}')
-            </div>
-          ))}
+        <div style={{ display: "flex", marginTop: "var(--space-2)", gap: "var(--space-4)", flexWrap: "wrap" }}>
+          {plan.map((p, i) => {
+            const phaseKey = phaseLabels[p.phaseLabel];
+            return (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: phaseColorMap[phaseKey] || "var(--color-primary)" }} />
+                {p.phaseLabel} ({p.phaseDuration}')
+              </div>
+            );
+          })}
         </div>
-      </div>
+      </Card>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* Drill cards */}
+      <div className="stagger-children" style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
         {plan.map((drill, i) => {
           const phaseKey = phaseLabels[drill.phaseLabel];
-          const color = phaseColorMap[phaseKey] || c.green500;
+          const color = phaseColorMap[phaseKey] || "var(--color-primary)";
           const expanded = expandedIdx === i;
           let runningTime = 0;
           for (let j = 0; j < i; j++) runningTime += plan[j].phaseDuration;
 
           return (
-            <div key={i} onClick={() => setExpandedIdx(expanded ? null : i)} style={{
-              ...cardStyle, border: expanded ? `2px solid ${color}` : `1px solid ${c.slate200}`,
-            }}>
-              <div style={{ padding: "18px 24px", display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{
-                  width: 48, height: 48, borderRadius: 12,
-                  background: `${color}18`, color: color,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 18, fontWeight: 700, flexShrink: 0,
-                }}>{drill.phaseDuration}'</div>
+            <Card
+              key={i}
+              elevation={expanded ? "mid" : "low"}
+              interactive
+              onClick={() => setExpandedIdx(expanded ? null : i)}
+              style={{
+                border: expanded ? `2px solid ${color}` : "1px solid var(--color-border)",
+              }}
+            >
+              <div style={{ padding: "var(--space-5) var(--space-6)", display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
+                <div
+                  style={{
+                    width: 50,
+                    height: 50,
+                    borderRadius: "var(--radius-lg)",
+                    background: `${color}18`,
+                    color: color,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "var(--text-lg)",
+                    fontWeight: "var(--weight-bold)",
+                    flexShrink: 0,
+                  }}
+                >
+                  {drill.phaseDuration}'
+                </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: color, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  <div className="overline" style={{ color: color, marginBottom: 2 }}>
                     {drill.phaseLabel} · {runningTime}'–{runningTime + drill.phaseDuration}'
                   </div>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: c.slate800, marginTop: 2 }}>{drill.name}</div>
+                  <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-semibold)", color: "var(--color-text-primary)", lineHeight: "var(--leading-snug)" }}>
+                    {drill.name}
+                  </div>
                 </div>
+                <ChevronDown
+                  size={18}
+                  color="var(--color-text-faint)"
+                  style={{
+                    transition: `transform var(--transition-base)`,
+                    transform: expanded ? "rotate(180deg)" : "none",
+                  }}
+                />
               </div>
 
               {expanded && (
-                <div style={{ padding: "0 24px 24px 24px", borderTop: `1px solid ${c.slate200}` }}>
-                  <p style={{ color: c.slate500, fontSize: 14, lineHeight: 1.7, margin: "16px 0" }}>{drill.description}</p>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {drill.equipment?.map(e => (
-                      <span key={e} style={{ ...badgeBase, background: `${color}12`, color: color, textTransform: "capitalize" }}>{e}</span>
+                <div
+                  style={{
+                    padding: "0 var(--space-6) var(--space-6) var(--space-6)",
+                    borderTop: "1px solid var(--color-border)",
+                    animation: "fadeInDown 0.2s ease-out",
+                  }}
+                >
+                  <p style={{ color: "var(--color-text-muted)", fontSize: "var(--text-sm)", lineHeight: "var(--leading-relaxed)", margin: "var(--space-4) 0" }}>
+                    {drill.description}
+                  </p>
+                  <div style={{ display: "flex", gap: "var(--space-1-5)", flexWrap: "wrap" }}>
+                    {drill.equipment?.map((e) => (
+                      <Badge key={e} bg={`${color}12`} textColor={color} style={{ textTransform: "capitalize" }}>
+                        {e}
+                      </Badge>
                     ))}
-                    <span style={{ ...badgeBase, background: `${color}12`, color: color }}>{drill.players?.[0]}–{drill.players?.[1]} players</span>
+                    <Badge bg={`${color}12`} textColor={color}>
+                      {drill.players?.[0]}–{drill.players?.[1]} players
+                    </Badge>
                   </div>
                 </div>
               )}
-            </div>
+            </Card>
           );
         })}
       </div>

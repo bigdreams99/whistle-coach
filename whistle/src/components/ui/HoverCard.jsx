@@ -1,16 +1,32 @@
 import React from "react";
-import { c } from "../../constants/colors.js";
-
-const cardStyle = {
-  background: c.white, borderRadius: 16, border: `1px solid ${c.slate200}`,
-  overflow: "hidden", transition: "box-shadow 0.2s, transform 0.15s", cursor: "pointer",
-};
 
 export default function HoverCard({ children, style, onClick }) {
   return (
-    <div onClick={onClick} style={{ ...cardStyle, ...style }}
-      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(0,0,0,0.1)"; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
-    >{children}</div>
+    <div
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+      style={{
+        background: "var(--color-surface)",
+        borderRadius: "var(--radius-xl)",
+        border: "1px solid var(--color-border)",
+        boxShadow: "var(--shadow-card)",
+        overflow: "hidden",
+        transition: `box-shadow var(--transition-base), transform var(--transition-fast)`,
+        cursor: "pointer",
+        ...style,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-3px)";
+        e.currentTarget.style.boxShadow = "var(--shadow-card-hover)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "";
+        e.currentTarget.style.boxShadow = style?.boxShadow || "var(--shadow-card)";
+      }}
+    >
+      {children}
+    </div>
   );
 }

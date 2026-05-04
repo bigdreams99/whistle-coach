@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import WhistleApp from './whistle-app.jsx'
+import './src/styles/tokens.css'
+import WhistleApp from './src/App.jsx'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

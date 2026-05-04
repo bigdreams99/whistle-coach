@@ -1,9 +1,8 @@
 import React from "react";
-import { Home, ClipboardList, Zap, Users, Clock, Star, ChevronDown, CheckCircle2, Sparkles } from "lucide-react";
-import { c } from "../constants/colors.js";
+import { Home, ClipboardList, Zap, Users, Clock, Star, ChevronDown, CheckCircle2, Sparkles, Moon, Sun } from "lucide-react";
 import { sportConfig } from "../constants/sports.js";
 
-export default function Sidebar({ page, setPage, sport, setSport, sportOpen, setSportOpen, isMobile, sidebarOpen, setSidebarOpen }) {
+export default function Sidebar({ page, setPage, sport, setSport, sportOpen, setSportOpen, isMobile, sidebarOpen, setSidebarOpen, darkMode, setDarkMode }) {
   const navItems = [
     { key: "dashboard", label: "Dashboard", icon: Home },
     { key: "generate", label: "Generate Plan", icon: Sparkles },
@@ -15,73 +14,270 @@ export default function Sidebar({ page, setPage, sport, setSport, sportOpen, set
   ];
 
   return (
-    <aside style={{
-      width: isMobile ? (sidebarOpen ? 240 : 0) : 240,
-      minHeight: "100vh",
-      background: c.white,
-      borderRight: `1px solid ${c.slate200}`,
-      display: "flex",
-      flexDirection: "column",
-      padding: "24px 0",
-      position: "fixed",
-      left: 0,
-      top: 0,
-      zIndex: 1000,
-      transition: isMobile ? "width 0.3s ease, box-shadow 0.3s ease" : "none",
-      boxShadow: isMobile && sidebarOpen ? "2px 0 12px rgba(0,0,0,0.15)" : "none",
-      overflow: "hidden"
-    }}>
-      <div style={{ padding: "0 20px", marginBottom: 28, display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${c.green500}, ${c.emerald600})`, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 800, fontSize: 16 }}>W</div>
-        <span style={{ fontSize: 20, fontWeight: 700, color: c.slate800, letterSpacing: -0.5 }}>Whistle</span>
+    <aside
+      aria-label="Main sidebar"
+      style={{
+        width: isMobile ? (sidebarOpen ? 260 : 0) : 260,
+        minHeight: "100vh",
+        background: "var(--color-sidebar-bg)",
+        borderRight: "1px solid var(--color-sidebar-border)",
+        display: "flex",
+        flexDirection: "column",
+        padding: "var(--space-6) 0",
+        position: "fixed",
+        left: 0,
+        top: 0,
+        zIndex: 1000,
+        transition: isMobile ? `width var(--transition-slow), box-shadow var(--transition-slow)` : "none",
+        boxShadow: isMobile && sidebarOpen ? "4px 0 20px rgba(0,0,0,0.3)" : "none",
+        overflow: "hidden",
+      }}
+    >
+      {/* Logo */}
+      <div style={{ padding: "0 var(--space-5)", marginBottom: "var(--space-8)", display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+        <div style={{
+          width: 38,
+          height: 38,
+          borderRadius: "var(--radius-md)",
+          background: "linear-gradient(135deg, var(--color-primary), var(--color-emerald))",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "white",
+          fontWeight: "var(--weight-extrabold)",
+          fontSize: "var(--text-lg)",
+          boxShadow: "0 2px 8px rgba(22, 163, 74, 0.3)",
+        }}>
+          W
+        </div>
+        <span style={{
+          fontSize: "var(--text-xl)",
+          fontWeight: "var(--weight-bold)",
+          color: "var(--color-sidebar-text-active)",
+          letterSpacing: "-0.5px",
+          fontFamily: "var(--font-family)",
+        }}>
+          Whistle
+        </span>
       </div>
 
-      <div style={{ padding: "0 16px", marginBottom: 24, position: "relative" }}>
-        <label style={{ fontSize: 11, fontWeight: 600, color: c.slate500, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, display: "block", paddingLeft: 4 }}>Sport</label>
-        <button onClick={e => { e.stopPropagation(); setSportOpen(!sportOpen); }}
-          style={{ width: "100%", padding: "8px 12px", borderRadius: 10, border: `1px solid ${c.slate200}`, background: c.slate50, display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, fontWeight: 500, color: c.slate700 }}>
-          <span style={{ fontSize: 18 }}>{sportConfig[sport].emoji}</span>{sport}
-          <ChevronDown size={14} style={{ marginLeft: "auto", color: c.slate400, transition: "transform 0.2s", transform: sportOpen ? "rotate(180deg)" : "none" }} />
+      {/* Sport selector */}
+      <div style={{ padding: "0 var(--space-4)", marginBottom: "var(--space-6)", position: "relative" }}>
+        <label className="overline" style={{ marginBottom: "var(--space-1-5)", display: "block", paddingLeft: "var(--space-1)", color: "var(--color-sidebar-text)" }}>
+          Sport
+        </label>
+        <button
+          onClick={(e) => { e.stopPropagation(); setSportOpen(!sportOpen); }}
+          aria-expanded={sportOpen}
+          aria-haspopup="listbox"
+          aria-label={`Selected sport: ${sport}`}
+          style={{
+            width: "100%",
+            padding: "10px 14px",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid var(--color-sidebar-border)",
+            background: "var(--color-sidebar-hover)",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            cursor: "pointer",
+            fontSize: "var(--text-sm)",
+            fontWeight: "var(--weight-medium)",
+            fontFamily: "var(--font-family)",
+            color: "var(--color-sidebar-text-active)",
+          }}
+        >
+          <span style={{ fontSize: 18 }}>{sportConfig[sport].emoji}</span>
+          {sport}
+          <ChevronDown
+            size={14}
+            style={{
+              marginLeft: "auto",
+              color: "var(--color-sidebar-text)",
+              transition: `transform var(--transition-base)`,
+              transform: sportOpen ? "rotate(180deg)" : "none",
+            }}
+          />
         </button>
         {sportOpen && (
-          <div style={{ position: "absolute", top: "100%", left: 16, right: 16, marginTop: 4, background: c.white, borderRadius: 12, border: `1px solid ${c.slate200}`, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 100, overflow: "hidden" }}>
-            {Object.keys(sportConfig).map(s => (
-              <button key={s} onClick={e => { e.stopPropagation(); setSport(s); setSportOpen(false); }}
-                style={{ width: "100%", padding: "10px 14px", border: "none", background: s === sport ? c.green50 : "transparent", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, fontWeight: s === sport ? 600 : 400, color: s === sport ? c.green700 : c.slate600 }}>
-                <span style={{ fontSize: 16 }}>{sportConfig[s].emoji}</span>{s}
-                {s === sport && <CheckCircle2 size={14} style={{ marginLeft: "auto" }} />}
+          <div
+            role="listbox"
+            aria-label="Sport selection"
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: "var(--space-4)",
+              right: "var(--space-4)",
+              marginTop: "var(--space-1)",
+              background: "var(--color-surface-raised)",
+              borderRadius: "var(--radius-lg)",
+              border: "1px solid var(--color-border)",
+              boxShadow: "var(--shadow-dropdown)",
+              zIndex: 100,
+              overflow: "hidden",
+              animation: "scaleIn 0.15s ease-out",
+            }}
+          >
+            {Object.keys(sportConfig).map((s) => (
+              <button
+                key={s}
+                role="option"
+                aria-selected={s === sport}
+                onClick={(e) => { e.stopPropagation(); setSport(s); setSportOpen(false); }}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  border: "none",
+                  background: s === sport ? "var(--color-primary-lighter)" : "transparent",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  cursor: "pointer",
+                  fontSize: "var(--text-sm)",
+                  fontFamily: "var(--font-family)",
+                  fontWeight: s === sport ? "var(--weight-semibold)" : "var(--weight-regular)",
+                  color: s === sport ? "var(--color-primary)" : "var(--color-text-secondary)",
+                  transition: `background var(--transition-fast)`,
+                }}
+                onMouseEnter={(e) => { if (s !== sport) e.currentTarget.style.background = "var(--color-surface-alt)"; }}
+                onMouseLeave={(e) => { if (s !== sport) e.currentTarget.style.background = "transparent"; }}
+              >
+                <span style={{ fontSize: 16 }}>{sportConfig[s].emoji}</span>
+                {s}
+                {s === sport && <CheckCircle2 size={14} style={{ marginLeft: "auto", color: "var(--color-primary)" }} />}
               </button>
             ))}
           </div>
         )}
       </div>
 
-      <nav style={{ flex: 1, padding: "0 10px" }}>
-        {navItems.map(item => {
-          const active = page === item.key || (page === "drill-detail" && item.key === "drills") || (page === "team-detail" && item.key === "teams") || (page === "plan-result" && item.key === "generate");
+      {/* Navigation */}
+      <nav style={{ flex: 1, padding: "0 var(--space-3)" }} aria-label="Main navigation">
+        {navItems.map((item) => {
+          const active =
+            page === item.key ||
+            (page === "drill-detail" && item.key === "drills") ||
+            (page === "team-detail" && item.key === "teams") ||
+            (page === "plan-result" && item.key === "generate");
           const Icon = item.icon;
           const isGenerate = item.key === "generate";
           return (
-            <button key={item.key} onClick={() => setPage(item.key)}
+            <button
+              key={item.key}
+              onClick={() => setPage(item.key)}
+              aria-current={active ? "page" : undefined}
               style={{
-                width: "100%", padding: "10px 14px", borderRadius: 10,
-                border: isGenerate && !active ? `1.5px solid ${c.green500}` : "none",
-                background: active ? c.green600 : isGenerate ? c.green50 : "transparent",
-                color: active ? c.white : isGenerate ? c.green700 : c.slate500,
-                display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
-                fontSize: 14, fontWeight: isGenerate || active ? 600 : 500, marginBottom: 2, transition: "all 0.15s",
-              }}>
-              <Icon size={18} />{item.label}
+                width: "100%",
+                padding: "10px 14px",
+                borderRadius: "var(--radius-md)",
+                border: isGenerate && !active ? "1.5px solid rgba(22, 163, 74, 0.4)" : "none",
+                background: active
+                  ? "var(--color-sidebar-active)"
+                  : isGenerate
+                  ? "rgba(22, 163, 74, 0.08)"
+                  : "transparent",
+                color: active
+                  ? "var(--color-sidebar-text-active)"
+                  : isGenerate
+                  ? "var(--color-primary)"
+                  : "var(--color-sidebar-text)",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                cursor: "pointer",
+                fontSize: "var(--text-sm)",
+                fontWeight: isGenerate || active ? "var(--weight-semibold)" : "var(--weight-medium)",
+                fontFamily: "var(--font-family)",
+                marginBottom: 2,
+                transition: `all var(--transition-fast)`,
+                position: "relative",
+              }}
+              onMouseEnter={(e) => {
+                if (!active) e.currentTarget.style.background = "var(--color-sidebar-hover)";
+              }}
+              onMouseLeave={(e) => {
+                if (!active) {
+                  e.currentTarget.style.background = isGenerate ? "rgba(22, 163, 74, 0.08)" : "transparent";
+                }
+              }}
+            >
+              {active && (
+                <div
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    width: 3,
+                    height: 20,
+                    borderRadius: "0 3px 3px 0",
+                    background: "var(--color-primary)",
+                  }}
+                />
+              )}
+              <Icon size={18} />
+              {item.label}
             </button>
           );
         })}
       </nav>
 
-      <div style={{ padding: "16px 20px", borderTop: `1px solid ${c.slate100}`, display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 34, height: 34, borderRadius: "50%", background: c.green100, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: c.green700 }}>DC</div>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: c.slate700 }}>Daniel</div>
-          <div style={{ fontSize: 11, color: c.slate500 }}>Pro Plan</div>
+      {/* Footer: Dark mode toggle + user */}
+      <div style={{ padding: "0 var(--space-4)" }}>
+        <button
+          onClick={() => setDarkMode?.(!darkMode)}
+          aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+          style={{
+            width: "100%",
+            padding: "10px 14px",
+            borderRadius: "var(--radius-md)",
+            border: "none",
+            background: "var(--color-sidebar-hover)",
+            color: "var(--color-sidebar-text)",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            cursor: "pointer",
+            fontSize: "var(--text-sm)",
+            fontWeight: "var(--weight-medium)",
+            fontFamily: "var(--font-family)",
+            marginBottom: "var(--space-4)",
+            transition: `all var(--transition-fast)`,
+          }}
+        >
+          {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+          {darkMode ? "Light Mode" : "Dark Mode"}
+        </button>
+
+        <div
+          style={{
+            padding: "var(--space-4) var(--space-3)",
+            borderTop: "1px solid var(--color-sidebar-border)",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: "50%",
+              background: "linear-gradient(135deg, var(--color-primary), var(--color-emerald))",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "var(--text-sm)",
+              fontWeight: "var(--weight-bold)",
+              color: "white",
+            }}
+          >
+            DC
+          </div>
+          <div>
+            <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: "var(--color-sidebar-text-active)" }}>Daniel</div>
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--color-sidebar-text)" }}>Pro Plan</div>
+          </div>
         </div>
       </div>
     </aside>
